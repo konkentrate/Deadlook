@@ -7,7 +7,7 @@ screens, shared components, tokens, navigation or UI dependencies.
 
 **Quiet, useful, game-native.** Charcoal surfaces, warm cream text, Deadlock green
 for actions and selection. Dense enough to analyze, spacious enough to scan.
-The eye-and-ring symbol and serif wordmark carry the game's occult character;
+The transparent eye-and-ring and outlined in-game Reaver Bold wordmark carry the game's occult character;
 the rest of the interface is a legible analytics tool, not a decorative game HUD.
 
 We use **Tabler Core 1.7.x** for the actual component system, not just as inspiration:
@@ -25,6 +25,7 @@ as another dependency. Tabler includes Bootstrap-derived styles already.
 | Game/brand palette | public/theme.css |
 | Tabler token bindings + game-only styles | src/style.css |
 | Brand mark / favicon | public/deadlook-eye.svg |
+| Outlined wordmark / full lockup | public/deadlook-wordmark.svg / deadlook-logo.svg |
 | App shell and navigation | src/App.svelte |
 | Match-history screen | src/pages/History.svelte |
 | Build Finder screen | src/pages/BuildFinder.svelte |
@@ -78,7 +79,9 @@ Never indicate a result or selected state by color alone:
 ## 4. Typography, icons and spacing
 
 - Body: system sans-serif, controlled by --tblr-font-sans-serif.
-- Georgia/serif: brand wordmark only. No webfont dependency.
+- Brand wordmark: outlined Reaver Bold SVG, not Georgia or a loaded webfont.
+  Use the same asset in header/footer; preserve transparency, including eye cut-outs.
+  Original artwork is backed up in assets/branding/backup (see its README).
 - Page title: page-title, one h1 per page.
 - Section title: card-title on h2. Subsections use h3.
 - Labels: form-label. Supporting copy: text-secondary small.

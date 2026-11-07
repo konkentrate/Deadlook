@@ -8,7 +8,8 @@
 - Preserve /, /builds.html, /analysis.html and share links. For analysis changes,
   read docs/ANALYSIS.md (formulas, rank semantics, route decoding, missing data). Player defaults are browser-local;
   never bundle a personal account or add a server-wide fallback. Keep Clear default.
-- Theme: public/theme.css; logo: public/deadlook-eye.svg. Use tokens, not new palettes.
+- Theme: public/theme.css; transparent eye/wordmark: public/deadlook-{eye,wordmark}.svg.
+  Original art: assets/branding/backup/ (preserve). Use tokens, not new palettes.
 - Backend uses fixed, validated API routes; keep keys server-side, cache raw fields,
   disclose missing/stale data. Never imply complete match coverage.
 - Test season boundaries, result scoring, request races and new behavior.

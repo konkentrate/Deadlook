@@ -48,7 +48,11 @@ official Valve mark. Shared colors live in public/theme.css:
 base_text (#ffefd7), deadlock_green (#69e799), dark gray (#1a1a1a),
 and supporting colors. Sources: game's assets via
 https://api.deadlock-api.com/v1/assets/colors and the locally installed Steam logo.
-No external fonts or image-generation service is needed.
+The wordmark uses outlined in-game Reaver Bold letterforms; no font binary,
+external font service or image-generation service is needed. The eye has a fully
+transparent background and cut-outs. Original artwork is preserved in
+[assets/branding/backup](assets/branding/backup); provenance is in
+[assets/branding/README.md](assets/branding/README.md).
 
 ## Local development
 

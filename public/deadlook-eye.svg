@@ -1,12 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" fill="none" role="img" aria-labelledby="title">
-<title id="title">Deadlook eye</title>
-<rect width="96" height="96" rx="22" fill="#1a1a1a"/>
-<g stroke="#ffefd7" stroke-width="3.5" stroke-linecap="square">
-<circle cx="48" cy="48" r="35" stroke-dasharray="42 13" transform="rotate(-35 48 48)"/>
-<path d="M48 7v12m0 58v12M7 48h12m58 0h12"/>
-</g>
-<path d="M19 48c8-2 13-15 29-15s21 13 29 15c-8 2-13 15-29 15S27 50 19 48Z" fill="#ffefd7"/>
-<circle cx="48" cy="48" r="12" fill="#1a1a1a"/>
-<circle cx="48" cy="48" r="7" fill="#69e799"/>
-<path d="m48 43 4 5-4 5-4-5Z" fill="#1a1a1a"/>
+  <title id="title">Deadlook eye</title>
+  <desc>Transparent eye-and-ring mark. Negative spaces are cut-outs, not background-colored paint.</desc>
+  <g stroke="#ffefd7" stroke-width="3.5" stroke-linecap="square">
+    <circle cx="48" cy="48" r="35" stroke-dasharray="42 13" transform="rotate(-35 48 48)"/>
+    <path d="M48 7v12m0 58v12M7 48h12m58 0h12"/>
+  </g>
+  <path fill="#ffefd7" fill-rule="evenodd" d="M19 48c8-2 13-15 29-15s21 13 29 15c-8 2-13 15-29 15S27 50 19 48Z M60 48a12 12 0 1 0-24 0 12 12 0 1 0 24 0Z"/>
+  <path fill="#69e799" fill-rule="evenodd" d="M55 48a7 7 0 1 0-14 0 7 7 0 1 0 14 0Z M48 43l4 5-4 5-4-5Z"/>
 </svg>
