@@ -72,8 +72,9 @@ use PLAYWRIGHT_CHROMIUM_EXECUTABLE=/usr/bin/chromium npm run test:ui to reuse th
 installed browser. CI runs these checks before publishing.
 
 The last command serves the compiled app at http://localhost:3000.
-The default player comes from DEFAULT_ACCOUNT_ID in .env. A player's own choice
-is saved per browser. Older Matchbook browser preferences remain readable.
+There is no bundled or server-wide player preset. Fresh browsers start with player
+search. Use Make my default to remember a player in that browser; Clear default
+removes the choice. Older Matchbook browser preferences remain readable.
 
 ## Deploy now: rootless Podman
 
@@ -87,7 +88,7 @@ mkdir -p ~/.config/containers/systemd ~/.config/deadlook
 cp deploy/deadlook.container ~/.config/containers/systemd/
 cp deploy/server.env.example ~/.config/deadlook/server.env
 chmod 600 ~/.config/deadlook/server.env
-# Edit server.env: default player and optional API key.
+# Edit server.env only if you want to supply an optional API key.
 systemctl --user daemon-reload
 systemctl --user start deadlook.service
 curl --fail http://127.0.0.1:3000/api/health

@@ -5,7 +5,8 @@
   file cache. Discuss major dependencies, database services or routing changes first.
 - Screens: src/pages/; shared UI: src/components/; helpers: src/lib/.
   Reuse components and Tabler primitives; Svelte owns interaction, not Bootstrap JS.
-- Preserve /, /builds.html, share links and saved default-player preferences.
+- Preserve /, /builds.html and share links. Player defaults are browser-local;
+  never bundle a personal account or add a server-wide fallback. Keep Clear default.
 - Theme: public/theme.css; logo: public/deadlook-eye.svg. Use tokens, not new palettes.
 - Backend uses fixed, validated API routes; keep keys server-side, cache raw fields,
   disclose missing/stale data. Never imply complete match coverage.
