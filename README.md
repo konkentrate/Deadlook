@@ -1,7 +1,8 @@
 # Deadlook
 
 Repository: https://github.com/konkentrate/Deadlook ·
-[Home-server quickstart](deploy/QUICKSTART.md) · [Design guide](docs/DESIGN.md)
+[Home-server quickstart](deploy/QUICKSTART.md) · [Design guide](docs/DESIGN.md) ·
+[Development / PR previews](docs/DEVELOPMENT.md)
 
 A self-hosted Deadlock match-history dashboard and build explorer.
 Unofficial fan project, not affiliated with Valve or Statlocker.
@@ -159,7 +160,10 @@ history; upstream availability is not guaranteed.
 
 ## Two people / multiple agents: recommended workflow
 
-1. Put the source in one private Git repository (GitHub, Forgejo or GitLab).
+See [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for exact branch, review and isolated
+Podman preview commands, including SSH access for other developers before merge.
+
+1. Use the shared GitHub repository; don't commit private configuration or cache data.
 2. Each person clones it on their OWN machine; each agent works on a feature branch.
    For parallel agents on one machine, use separate git worktrees.
 3. Use small pull requests, not direct edits on the production server.
