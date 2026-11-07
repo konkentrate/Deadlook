@@ -11,12 +11,21 @@
 - Backend uses fixed, validated API routes; keep keys server-side, cache raw fields,
   disclose missing/stale data. Never imply complete match coverage.
 - Test season boundaries, result scoring, request races and new behavior.
-- Before a PR: npm test && npm run build && npm run test:ui.
+- Keep development simple: work and test locally, normally on main. Extra branches,
+  worktrees, hosted previews and staging services are NOT required.
+- Local setup: npm ci; run npm run dev:server and npm run dev in two terminals.
+  Open localhost:5173 (API:3001); development cache is data-dev/, not production.
+  Other developers can pull the commit and run the same commands locally.
+- Before publishing: npm test && npm run build && npm run test:ui.
   Browser setup: npx playwright install chromium (or PLAYWRIGHT_CHROMIUM_EXECUTABLE).
   Check keyboard access, empty/error states, desktop and 375px mobile.
-- One branch/worktree per agent/task; small reviewed PRs. Do not share a working tree.
-- **Merging/pushing main automatically releases production.** Get owner approval;
-  don't deploy, change server secrets or run Steam ingestion during ordinary tasks.
+- When requested work is ready, commit and push main. GitHub checks/builds the image;
+  the server automatically updates after publication. A push is a production release:
+  don't push unfinished work. If unsure whether to release, ask the owner.
+- PRs are optional when review is wanted; only then use a branch, include a brief
+  summary/test results, and wait for checks/review before merging. No preview required.
+- Fetch before publishing; don't overwrite others' changes or force-push main.
+  Do not edit production source, proxy/server secrets or run Steam ingestion.
 - Never commit .env*, caches, personal exports, tokens or Steam sessions
   (only documented *.example configuration templates may be committed).
 - Production: rootless Podman on the proxy's existing network, alias deadlook,

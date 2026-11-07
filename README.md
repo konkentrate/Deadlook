@@ -157,30 +157,39 @@ systemctl --user start deadlook.service
 Store backups outside the repository. Deleting the cache loses locally retained
 history; upstream availability is not guaranteed.
 
-## Two people / multiple agents: recommended workflow
+## Development → site
 
-1. Put the source in one private Git repository (GitHub, Forgejo or GitLab).
-2. Each person clones it on their OWN machine; each agent works on a feature branch.
-   For parallel agents on one machine, use separate git worktrees.
-3. Use small pull requests, not direct edits on the production server.
-4. Require review and passing checks on main.
-5. The included GitHub workflow runs tests and builds; successful main pushes also
-   publish production images to GHCR. PRs do not publish. Server auto-updates are
-   opt-in: see [deploy/AUTO-DEPLOY.md](deploy/AUTO-DEPLOY.md).
-6. Deploy only a reviewed main commit/tag. Keep the running server independent of
-   development sessions. No production source bind mounts or Vite dev servers.
+Keep it simple: **develop and test locally → push main when ready → automatic update**.
+No mandatory feature branches, worktrees, staging services or hosted previews.
 
-Example branch:
+Each developer uses their local checkout. Run npm run dev:server and npm run dev
+in two terminals, then open http://localhost:5173. Development uses data-dev/,
+not the production cache. Another developer can pull the commit and test locally
+the same way. Never develop against the production source or volume.
 
 ```sh
-git switch main
 git pull --ff-only
-git switch -c feature/hero-summary
-# work, then npm test && npm run build
+# Make and test the requested changes locally.
+npm test
+npm run build
+npm run test:ui
 git add <changed-source-files>
-git commit -m "Add hero summary"
-git push -u origin feature/hero-summary
+git commit -m "Describe the change"
+git push origin main
 ```
+
+Fetch/check for others' changes before pushing; integrate and retest if main
+advanced. Don't force-push or overwrite another developer's work.
+Only push completed work: pushing main is a production release.
+
+GitHub runs checks, builds and publishes the container image. With server
+auto-updates enabled, the site picks it up on the next timer run. See
+[deploy/AUTO-DEPLOY.md](deploy/AUTO-DEPLOY.md) for setup and rollback.
+
+PRs are optional when review is useful. A PR needs a branch, but normal local
+work doesn't. Include a short summary and test results, wait for checks/review,
+then merge; merging to main triggers the same release. PR checks alone do not
+publish an image or change the site.
 
 ### Simple manual release, with rollback
 
