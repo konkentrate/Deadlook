@@ -2,65 +2,63 @@
 
 Repo: https://github.com/konkentrate/Deadlook (private)
 Image: ghcr.io/konkentrate/deadlook:main
+Proxy upstream: **http://deadlook:3000**
 
 ## Prerequisites
 
-- Linux home server, rootless Podman 5+, systemd user services.
-- amd64 or arm64 CPU. Git and curl installed.
-- Run everything as ONE normal service user, not with sudo podman.
-- First GitHub **Test and release** workflow must finish successfully.
-- Private repo clone access via your SSH key (or gh auth login on the server).
-- GitHub PAT (classic) with read:packages and access to this private package.
-  Enter it into podman login when prompted; do not paste it into chat or Git.
+- Linux, rootless Podman 5+, systemd user services; amd64/arm64.
+- Run as the SAME normal user that runs the reverse proxy, not sudo podman.
+- Existing proxy network with DNS enabled. Check: podman network ls.
+  A Quadlet named proxy.network often creates a network named systemd-proxy.
+- Wait for the GitHub Test and release workflow to publish its first image.
+- SSH access to the private repo; a GitHub PAT (classic) with read:packages for
+  podman login. Never put tokens in Git or chat.
 
 ## Install
 
-SSH into your server, then:
+On the server:
 
 ```sh
 git clone git@github.com:konkentrate/Deadlook.git ~/Deadlook
 cd ~/Deadlook
+podman network ls
 bash deploy/install-server.sh
 sudo loginctl enable-linger "$USER"
 ```
 
-The installer preserves existing server.env/registry credentials, pulls the image
-before replacing a service, starts Deadlook, and asks before enabling the
-five-minute Podman update timer. It backs up an existing Deadlook Quadlet.
-If it reports denied/not found, verify the GitHub workflow and package access.
-
-Edit ~/.config/deadlook/server.env for the default player or optional API key,
-then systemctl --user restart deadlook.service.
-Do not set HOST=127.0.0.1 inside the container.
-
-## Open it first, without configuring a domain
-
-From YOUR workstation:
+The installer auto-detects proxy or systemd-proxy. To specify another existing
+network (or disambiguate if both exist):
 
 ```sh
-ssh -L 8080:127.0.0.1:3000 USER@SERVER
+DEADLOOK_NETWORK=ACTUAL_NETWORK_NAME bash deploy/install-server.sh
 ```
 
-Open http://localhost:8080.
+Use the runtime network name from podman network ls, NOT the .network filename.
+The script does not create or modify the proxy network or proxy container.
 
-The container listens only on the server's loopback port 3000. Put an existing
-HTTPS reverse proxy in front of it later, with authentication or VPN access.
-The app has no login yet; don't expose unrestricted API access publicly.
+The installer preserves existing configuration, authenticates/pulls the image,
+starts the service and asks before enabling the five-minute update timer.
+No host port is published. Deadlook gets the network alias deadlook.
+Configure your reverse proxy later with upstream http://deadlook:3000.
+Both containers must be attached to that same network, under the same Podman user.
+The proxy must not use its own localhost as the upstream.
 
-If your proxy is a host-level Caddy instance:
+## Verify before configuring the proxy
 
-```caddyfile
-deadlook.YOUR_DOMAIN {
-    reverse_proxy 127.0.0.1:3000
-}
+```sh
+systemctl --user status deadlook.service
+podman healthcheck run deadlook
+podman exec deadlook node -e "fetch('http://deadlook:3000/api/health').then(r=>r.json()).then(console.log)"
+podman port deadlook  # expected: no published ports
 ```
 
-A containerized proxy needs a shared network/reachable host upstream instead.
+Edit ~/.config/deadlook/server.env for the default player or optional API key;
+then systemctl --user restart deadlook.service. Keep HOST=0.0.0.0 in the container.
 
-## Updates and checks
+## Updates
 
-Merge an approved PR to main → tests/browser checks → image published →
-server updates in roughly five minutes, plus build/pull time. Short restart.
+Approved main push → checks → GHCR image → server update within ~5 minutes,
+plus build/pull time. Short restart. Configuration and deadlook-data survive.
 
 ```sh
 systemctl --user list-timers podman-auto-update.timer
@@ -68,12 +66,5 @@ journalctl --user -u deadlook.service -f
 journalctl --user -u podman-auto-update.service -n 50
 ```
 
-Local server.env and the named deadlook-data volume survive updates.
-Automatic failed-start rollback uses the HTTP healthcheck; it cannot detect
-every application bug. See AUTO-DEPLOY.md for pinning, rollback and backups.
-
-## Collaboration
-
-Invite your friend as a repository collaborator. Each agent uses a feature
-branch/worktree and submits a PR. Protect main where your GitHub plan allows.
-Read AGENTS.md and docs/DESIGN.md. Do not develop directly in production.
+The app has no login yet: use reverse-proxy authentication or VPN access.
+Rollback/pinning: AUTO-DEPLOY.md. Collaboration rules: ../AGENTS.md.

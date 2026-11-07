@@ -18,4 +18,5 @@
   don't deploy, change server secrets or run Steam ingestion during ordinary tasks.
 - Never commit .env*, caches, personal exports, tokens or Steam sessions
   (only documented *.example configuration templates may be committed).
-- Deployment: deploy/QUICKSTART.md; details/rollback: deploy/AUTO-DEPLOY.md.
+- Production: rootless Podman on the proxy's existing network, alias deadlook,
+  upstream http://deadlook:3000; no host port. See deploy/QUICKSTART.md and AUTO-DEPLOY.md.

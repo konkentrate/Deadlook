@@ -50,7 +50,10 @@ chmod 600 ~/.config/containers/auth.json
 cp deploy/deadlook-auto.container ~/.config/containers/systemd/deadlook.container
 ```
 
-The Quadlet is already configured for ghcr.io/konkentrate/deadlook:main.
+The Quadlet is configured for ghcr.io/konkentrate/deadlook:main and Network=proxy.
+For manual installation, set Network= to the existing runtime network name from
+podman network ls (often systemd-proxy for proxy.network). Use the same rootless
+user as the proxy. The installer auto-detects these two common network names.
 
 This file REPLACES the manual Quadlet. Do not leave a second .container file
 running another service with the same container name/port.
@@ -80,12 +83,13 @@ Never bake .env or API keys into the image; our build excludes .env and data.
 ```sh
 systemctl --user daemon-reload
 systemctl --user restart deadlook.service
-curl --fail http://127.0.0.1:3000/api/health
+podman healthcheck run deadlook
 journalctl --user -u deadlook.service -n 50
 ```
 
-Keep the existing HTTPS reverse proxy/VPN setup. Only loopback port 3000 is exposed.
-The named deadlook-data volume and server.env survive image replacements.
+No host port is published. Configure the containerized reverse proxy separately
+with upstream http://deadlook:3000 on the shared network. The script does not alter
+the proxy. The named deadlook-data volume and server.env survive replacements.
 
 For boot-time startup, an administrator should enable user lingering:
 
@@ -147,7 +151,7 @@ For a Deadlook-only rollback:
 ```sh
 systemctl --user daemon-reload
 systemctl --user restart deadlook.service
-curl --fail http://127.0.0.1:3000/api/health
+podman healthcheck run deadlook
 ```
 
 A container rollback does not roll back the data volume. Back up retained match

@@ -12,7 +12,9 @@ AutoUpdate=registry
 # Persisted registry credentials, also used by the auto-update service:
 Label=io.containers.autoupdate.authfile=%h/.config/containers/auth.json
 ContainerName=deadlook
-PublishPort=127.0.0.1:3000:3000
+# Join the reverse proxy's existing network; no host port is published.
+Network=proxy
+NetworkAlias=deadlook
 EnvironmentFile=%h/.config/deadlook/server.env
 Volume=deadlook-data:/app/data
 ReadOnly=true
