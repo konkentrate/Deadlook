@@ -52,7 +52,7 @@ podman exec deadlook node -e "fetch('http://deadlook:3000/api/health').then(r=>r
 podman port deadlook  # expected: no published ports
 ```
 
-Edit ~/.config/deadlook/server.env for the default player or optional API key;
+Player defaults are browser-local. Edit ~/.config/deadlook/server.env only for an optional API key;
 then systemctl --user restart deadlook.service. Keep HOST=0.0.0.0 in the container.
 
 ## Updates

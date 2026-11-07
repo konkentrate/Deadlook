@@ -7,7 +7,7 @@
   import Modal from '../components/Modal.svelte';
   import { api, duration, type Profile, type Hero, type Match, type Result, type Season } from '../types';
   import { currentSeason, inSeason } from '../seasons.js';
-  import { defaultPlayer, savePlayer } from '../lib/preferences';
+  import { defaultPlayer, savePlayer, clearPlayer } from '../lib/preferences';
   import { dateTime, shortDate } from '../lib/format';
   let player = $state<Profile|null>(null); let home = $state<Profile|null>(null);
   let matches = $state<Match[]>([]); let heroes = $state<Hero[]>([]); let seasons = $state<Season[]>([]);
@@ -35,6 +35,7 @@
     }catch(e){if(seq===sequence)error=(e as Error).message;}finally{if(seq===sequence)loading=false;}
   }
   function remember(){if(!player)return;try{savePlayer(player);home=player;notice='Default player saved for this browser.';}catch{notice='Browser storage is unavailable; default could not be saved.';}}
+  function forget(){try{clearPlayer();++sequence;home=null;player=null;matches=[];fetchedAt='';loading=false;error='';clearFilters();notice='Default player cleared for this browser.';}catch{notice='Browser storage is unavailable; default could not be cleared.';}}
   function exportHistory(){const url=URL.createObjectURL(new Blob([JSON.stringify(matches,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='deadlook-'+player?.account_id+'-history.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function openMatch(match:Match){++detailSequence;selected=match;metadata='';metadataError='';metadataLoading=false;}
   async function getMetadata(){if(!selected)return;const seq=++detailSequence;metadataLoading=true;metadataError='';
@@ -61,7 +62,7 @@
   <div class="d-flex flex-wrap gap-3 align-items-center mb-4">
    {#if player.avatarmedium}<img class="avatar avatar-lg" src={player.avatarmedium} alt="" referrerpolicy="no-referrer"/>{/if}
    <div><h2 class="mb-1">{player.personaname}</h2><div class="text-secondary small font-monospace">Account {player.account_id}</div></div>
-   <div class="ms-auto"><button class="btn btn-sm" disabled={home?.account_id===player.account_id} onclick={remember}><IconStar size={16}/> {home?.account_id===player.account_id?'Default player':'Make my default'}</button>{#if home && home.account_id!==player.account_id}<button class="btn btn-sm ms-2" onclick={()=>load(home!)}>My player</button>{/if}</div>
+   <div class="ms-auto"><button class="btn btn-sm" disabled={home?.account_id===player.account_id} onclick={remember}><IconStar size={16}/> {home?.account_id===player.account_id?'Default player':'Make my default'}</button>{#if home && home.account_id!==player.account_id}<button class="btn btn-sm ms-2" onclick={()=>load(home!)}>My player</button>{/if}{#if home}<button class="btn btn-sm ms-2" onclick={forget}>Clear default</button>{/if}</div>
   </div>
   <div class="row row-cards mb-4" aria-label="Statistics for filtered matches">
    <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="d-flex align-items-center justify-content-between"><div class="subheader">Recorded matches</div><IconDatabase class="text-secondary" size={19}/></div><div class="h1 mt-2 mb-1">{filtered.length.toLocaleString()}</div><div class="text-secondary small">{matches.length.toLocaleString()} retained all time</div></div></div></div>

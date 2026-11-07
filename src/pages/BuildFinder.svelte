@@ -15,7 +15,7 @@
  let heroes=$state<Hero[]>([]);let seasons=$state<Season[]>([]);let items=$state<Item[]>([]);
  let heroId=$state(1);let seasonId=$state('');let days=$state('30');let mode=$state('both');let sort=$state('rank');let minimum=$state('5');let heroQuery=$state('');
  let rankings=$state<RankedPlayer[]>([]);let listLoading=$state(false);let listError=$state('');let fetchedAt=$state('');let stale=$state(false);let listWarning=$state('');let assetWarning=$state('');let booting=$state(true);
- let player=$state<Profile|null>(null);let history=$state<Match[]>([]);let playerLoading=$state(false);let playerError=$state('');
+ let preferenceNotice=$state('');let player=$state<Profile|null>(null);let history=$state<Match[]>([]);let playerLoading=$state(false);let playerError=$state('');
  let stats=$state<ItemStat[]>([]);let orders=$state<AbilityOrder[]>([]);let analyticsLoading=$state(false);let itemError=$state('');let abilityError=$state('');
  let gameIndex=$state(0);let purchases=$state<Purchase[]>([]);let metadataLoading=$state(false);let metadataError=$state('');
  let listSequence=0;let playerSequence=0;let matchSequence=0;
@@ -61,7 +61,7 @@
  }
  async function chooseHero(id:number){heroId=id;await loadRankings(false);}
  async function loadPlayer(p:Profile){
-   const seq=++playerSequence;++matchSequence;player=p;share();playerLoading=true;playerError='';history=[];stats=[];orders=[];purchases=[];gameIndex=0;itemError='';abilityError='';metadataError='';analyticsLoading=false;metadataLoading=false;
+   const seq=++playerSequence;++matchSequence;preferenceNotice='';player=p;share();playerLoading=true;playerError='';history=[];stats=[];orders=[];purchases=[];gameIndex=0;itemError='';abilityError='';metadataError='';analyticsLoading=false;metadataLoading=false;
    try{const r=await api<Result<Match[]>>('/api/players/'+p.account_id+'/history');if(seq!==playerSequence)return;
     history=r.data;if(r.stale)playerError='Showing saved history: '+r.warning;
     if(games.length){loadGame(0);loadAnalytics(p.account_id,seq);}
@@ -89,7 +89,7 @@
    }catch(e){if(seq===matchSequence)metadataError=(e as Error).message;}finally{if(seq===matchSequence)metadataLoading=false;}
  }
  function directPlayer(p:Profile){++listSequence;listLoading=false;loadPlayer(p);}
- async function myPlayer(){try{const p=await defaultPlayer();if(p)directPlayer(p);else playerError='Save a default player on Match history first.';}catch(e){playerError=(e as Error).message;}}
+ async function myPlayer(){try{const p=await defaultPlayer();if(p)directPlayer(p);else preferenceNotice='Save a default player on Match history first.';}catch(e){preferenceNotice=(e as Error).message;}}
  function keyboard(e:KeyboardEvent){
    if(e.target instanceof Element&&e.target.closest('input,textarea,select,button,a'))return;
    if(e.ctrlKey||e.metaKey||e.altKey)return;
@@ -116,6 +116,7 @@
  {#snippet actions()}<button class="btn" onclick={myPlayer} disabled={booting}><IconTarget size={18}/> My player</button><button class="btn btn-primary" disabled={booting||listLoading} onclick={()=>loadRankings(true,true)}><IconRefresh size={18} class={listLoading?'spin':''}/> Refresh players</button>{/snippet}
 </PageHeader>
 <div class="page-body"><div class="container-xl">
+ {#if preferenceNotice}<div class="alert alert-info" role="status">{preferenceNotice}</div>{/if}
  {#if assetWarning}<div class="alert alert-warning" role="status">{assetWarning}</div>{/if}
  <div class="card mb-4"><div class="card-body"><div class="row g-3">
   <div class="col-6 col-lg-3"><label class="form-label" for="season">Season</label><select id="season" class="form-select" bind:value={seasonId} onchange={()=>loadRankings()} disabled={booting}><option value="">Recent time window</option>{#each seasons as s}<option value={s.class_name}>{s.name}</option>{/each}</select></div>

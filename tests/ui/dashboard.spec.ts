@@ -7,14 +7,14 @@ const history=[makeMatch(101,1,now-3600,1),makeMatch(102,2,now-7200,2),makeMatch
 const seasons=[{class_name:'season_2',name:'Beta Season 2',ranked_type:'normal',intervals:[{interval:2,start_timestamp:now-60*86400,end_timestamp:now+60*86400}]},{class_name:'season_1',name:'Beta Season 1',ranked_type:'normal',intervals:[{interval:1,start_timestamp:now-120*86400,end_timestamp:now-60*86400}]}];
 const item={id:10,name:'Extra Spirit',type:'upgrade',item_slot_type:'spirit',item_tier:1,shop_image_small_webp:'/deadlook-eye.svg'};
 const ability={id:20,name:'Flame Dash',type:'ability',image_webp:'/deadlook-eye.svg'};
-async function fixtures(page:Page){
+async function fixtures(page:Page,remember=true){
+ if(remember)await page.addInitScript(p=>localStorage.setItem('deadlook.home',JSON.stringify(p)),profile);
  const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
  await page.route('**/api/**',async route=>{
   const url=new URL(route.request().url());const path=url.pathname;
   const envelope=(data:unknown)=>({data,fetchedAt:new Date().toISOString(),cached:false,stale:false});
   let response:unknown;
-  if(path==='/api/config')response={defaultAccountId:'123'};
-  else if(path==='/api/search')response=envelope([url.searchParams.get('q')==='Fixture'?{account_id:456,personaname:'Fixture Friend'}:profile]);
+  if(path==='/api/search')response=envelope([url.searchParams.get('q')==='Fixture'?{account_id:456,personaname:'Fixture Friend'}:profile]);
   else if(path==='/api/heroes')response=envelope(heroes);
   else if(path==='/api/seasons')response=envelope(seasons);
   else if(path.endsWith('/history'))response=envelope(history.map(m=>({...m,account_id:Number(path.split('/')[3])})));
@@ -77,6 +77,26 @@ test('a leaderboard failure does not prevent inspecting a directly selected play
  await expect(page.getByRole('alert')).toContainText('Leaderboard temporarily unavailable');
  await expect(page.locator('#typical')).toContainText('Extra Spirit');
  expect(errors).toEqual([]);
+});
+test('fresh browsers have no preset and can save, reload, and clear their own player',async({page})=>{
+ await fixtures(page,false);
+ const historyRequests:string[]=[];
+ page.on('request',r=>{if(r.url().includes('/history'))historyRequests.push(r.url());});
+ await page.goto('/');
+ await expect(page.getByText('Start with a player')).toBeVisible();
+ expect(historyRequests).toHaveLength(0);
+ await page.locator('#player-search').fill('Fixture');
+ await page.getByRole('button',{name:'Find player',exact:true}).click();
+ await page.getByRole('button',{name:/Fixture Friend Account 456/}).click();
+ await page.getByRole('button',{name:'Make my default'}).click();
+ await page.reload();
+ await expect(page.getByRole('heading',{name:'Fixture Friend'})).toBeVisible();
+ await page.evaluate(p=>localStorage.setItem('matchbook.home',JSON.stringify(p)),profile);
+ await page.getByRole('button',{name:'Clear default',exact:true}).click();
+ await expect(page.getByText('Start with a player')).toBeVisible();
+ await page.reload();
+ await expect(page.getByText('Start with a player')).toBeVisible();
+ expect(await page.evaluate(()=>localStorage.getItem('deadlook.home')||localStorage.getItem('matchbook.home'))).toBeNull();
 });
 test('both pages fit a mobile viewport and keep navigation usable',async({page})=>{
  await fixtures(page);await page.setViewportSize({width:375,height:812});

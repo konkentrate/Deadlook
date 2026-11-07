@@ -14,7 +14,6 @@ app.use((_req, res, next) => {
   next();
 });
 app.get('/api/health', (_req, res) => res.json({ ok: true }));
-app.get('/api/config', (_req, res) => res.json({ defaultAccountId: process.env.DEFAULT_ACCOUNT_ID || '' }));
 app.get('/api/search', async (req, res) => {
   const query = String(req.query.q || '').trim();
   if (query.length < 2 || query.length > 80) throw new ApiError('Search must be 2–80 characters.', 400);
