@@ -1,0 +1,24 @@
+# Rootless Podman Quadlet. Copy to ~/.config/containers/systemd/deadlook.container.
+[Unit]
+Description=Deadlook match history and build finder
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=localhost/deadlook:production
+ContainerName=deadlook
+PublishPort=127.0.0.1:3000:3000
+EnvironmentFile=%h/.config/deadlook/server.env
+Volume=deadlook-data:/app/data
+ReadOnly=true
+Tmpfs=/tmp:rw,noexec,nosuid,size=64m
+DropCapability=all
+NoNewPrivileges=true
+
+[Service]
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=120
+
+[Install]
+WantedBy=default.target

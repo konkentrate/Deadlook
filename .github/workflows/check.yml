@@ -1,0 +1,75 @@
+name: Test and release
+on:
+  push:
+    branches: [main]
+  pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: deadlook-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  test-and-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:ui
+      - name: Verify production container builds
+        run: docker build -f Containerfile -t deadlook:test .
+      - name: Verify non-root container healthcheck
+        shell: bash
+        run: |
+          trap 'docker rm -f deadlook-ci >/dev/null 2>&1 || true' EXIT
+          docker run -d --name deadlook-ci --read-only --tmpfs /tmp --tmpfs /app/data:uid=1000,gid=1000 --health-interval=2s --health-start-period=0s deadlook:test
+          for attempt in {1..30}; do
+            status=$(docker inspect --format '{{.State.Health.Status}}' deadlook-ci)
+            if [ "$status" = healthy ]; then exit 0; fi
+            sleep 2
+          done
+          docker inspect --format '{{json .State.Health}}' deadlook-ci
+          docker logs deadlook-ci
+          exit 1
+
+  publish:
+    # Never publish PR code, including pull requests originating inside this repo.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: test-and-build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compute lowercase GHCR image name
+        id: image
+        shell: bash
+        run: echo "name=ghcr.io/${GITHUB_REPOSITORY,,}" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Containerfile
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ${{ steps.image.outputs.name }}:main
+            ${{ steps.image.outputs.name }}:sha-${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

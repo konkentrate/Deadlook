@@ -1,0 +1,21 @@
+/* Named game colors from https://api.deadlock-api.com/v1/assets/colors.
+   Neutral surfaces and tinted backgrounds are our own supporting colors. */
+:root {
+  color-scheme: dark;
+  --dl-bg: #1a1a1a;
+  --dl-panel: #242420;
+  --dl-panel-raised: #2e2c27;
+  --dl-line: #45433c;
+  --dl-cream: #ffefd7;
+  --dl-muted: #b3ac9e;
+  --dl-green: #69e799;
+  --dl-green-light: #a8ffc9;
+  --dl-green-dark: #47a36c;
+  --dl-gold: #f0de8d;
+  --dl-red: #f08e87;
+  --dl-win-bg: #23372a;
+  --dl-loss-bg: #392725;
+  --dl-weapon: #e58a00;
+  --dl-vitality: #7bba1d;
+  --dl-spirit: #8a55b3;
+}

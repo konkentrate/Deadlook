@@ -1,0 +1,33 @@
+# Copy this AS ~/.config/containers/systemd/deadlook.container.
+# This replaces the manual-deployment Quadlet; don't run both.
+# Production channel published by github.com/konkentrate/Deadlook.
+[Unit]
+Description=Deadlook (automatically updated from GHCR)
+Wants=network-online.target
+After=network-online.target
+
+[Container]
+Image=ghcr.io/konkentrate/deadlook:main
+AutoUpdate=registry
+# Persisted registry credentials, also used by the auto-update service:
+Label=io.containers.autoupdate.authfile=%h/.config/containers/auth.json
+ContainerName=deadlook
+PublishPort=127.0.0.1:3000:3000
+EnvironmentFile=%h/.config/deadlook/server.env
+Volume=deadlook-data:/app/data
+ReadOnly=true
+Tmpfs=/tmp:rw,noexec,nosuid,size=64m
+DropCapability=all
+NoNewPrivileges=true
+# The image has an HTTP healthcheck. systemd waits for it before reporting ready.
+Notify=healthy
+HealthOnFailure=kill
+
+[Service]
+Environment=REGISTRY_AUTH_FILE=%h/.config/containers/auth.json
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=300
+
+[Install]
+WantedBy=default.target

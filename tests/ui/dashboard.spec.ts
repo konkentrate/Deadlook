@@ -1,0 +1,88 @@
+import { test, expect, type Page } from '@playwright/test';
+const now = Math.floor(Date.now()/1000);
+const profile = {account_id:123,personaname:'Fixture Player'};
+const heroes = [{id:1,name:'Infernus',playable:true,images:{icon_hero_card_webp:'/deadlook-eye.svg',icon_image_small_webp:'/deadlook-eye.svg'}},{id:2,name:'Seven',playable:true,images:{icon_hero_card_webp:'/deadlook-eye.svg'}}];
+const makeMatch=(id:number,hero:number,start:number,outcome:number)=>({account_id:123,match_id:id,hero_id:hero,hero_level:20,start_time:start,game_mode:1,match_mode:4,player_team:0,player_match_outcome:outcome,player_kills:8,player_deaths:4,player_assists:10,net_worth:30000,last_hits:100,denies:5,match_duration_s:1800,match_result:outcome===1?0:1});
+const history=[makeMatch(101,1,now-3600,1),makeMatch(102,2,now-7200,2),makeMatch(103,1,now-90*86400,1)];
+const seasons=[{class_name:'season_2',name:'Beta Season 2',ranked_type:'normal',intervals:[{interval:2,start_timestamp:now-60*86400,end_timestamp:now+60*86400}]},{class_name:'season_1',name:'Beta Season 1',ranked_type:'normal',intervals:[{interval:1,start_timestamp:now-120*86400,end_timestamp:now-60*86400}]}];
+const item={id:10,name:'Extra Spirit',type:'upgrade',item_slot_type:'spirit',item_tier:1,shop_image_small_webp:'/deadlook-eye.svg'};
+const ability={id:20,name:'Flame Dash',type:'ability',image_webp:'/deadlook-eye.svg'};
+async function fixtures(page:Page){
+ const errors:string[]=[];page.on('pageerror',e=>errors.push(e.message));
+ await page.route('**/api/**',async route=>{
+  const url=new URL(route.request().url());const path=url.pathname;
+  const envelope=(data:unknown)=>({data,fetchedAt:new Date().toISOString(),cached:false,stale:false});
+  let response:unknown;
+  if(path==='/api/config')response={defaultAccountId:'123'};
+  else if(path==='/api/search')response=envelope([url.searchParams.get('q')==='Fixture'?{account_id:456,personaname:'Fixture Friend'}:profile]);
+  else if(path==='/api/heroes')response=envelope(heroes);
+  else if(path==='/api/seasons')response=envelope(seasons);
+  else if(path.endsWith('/history'))response=envelope(history.map(m=>({...m,account_id:Number(path.split('/')[3])})));
+  else if(path==='/api/finder/items')response=envelope([item,ability]);
+  else if(path==='/api/finder/leaderboard')response=envelope([{...profile,rank:1,matches:12,value:url.searchParams.get('sort_by')==='winrate'?0.75:65000,badge:111}]);
+  else if(path==='/api/finder/item-stats')response=envelope([{item_id:10,matches:1,avg_buy_time_s:120}]);
+  else if(path==='/api/finder/ability-order-stats')response=envelope([{abilities:[20,20,20,20,20,20],matches:1}]);
+  else if(path.endsWith('/metadata'))response=envelope({match_info:{players:[{account_id:123,items:[{item_id:10,game_time_s:120,sold_time_s:1000},{item_id:20,game_time_s:60}]}]}});
+  else return route.fulfill({status:404,json:{error:'Unknown fixture '+path}});
+  await route.fulfill({json:response});
+ });
+ return errors;
+}
+test('history uses season filters, native accessible inspector, and default player storage',async({page})=>{
+ const errors=await fixtures(page);await page.goto('/');
+ await expect(page.getByRole('heading',{name:'Fixture Player'})).toBeVisible();
+ await expect(page.locator('tbody tr')).toHaveCount(2);
+ await page.locator('#season').selectOption('season_1');await expect(page.locator('tbody tr')).toHaveCount(1);
+ await page.locator('#season').selectOption('season_2');
+ const details=page.getByRole('button',{name:'Details for match 101'});
+ await details.click();await expect(page.getByRole('dialog')).toBeVisible();
+ await page.getByRole('button',{name:'Fetch detailed metadata'}).click();
+ await expect(page.getByRole('button',{name:'Metadata loaded'})).toBeVisible();
+ await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(details).toBeFocused();
+ await page.locator('#player-search').fill('Fixture');await page.getByRole('button',{name:'Find player',exact:true}).click();
+ await page.getByRole('button',{name:/Fixture Friend Account 456/}).click();
+ await expect(page.getByRole('heading',{name:'Fixture Friend'})).toBeVisible();
+ await page.getByRole('button',{name:'Make my default'}).click();
+ expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('deadlook.home')||'null').account_id)).toBe(456);
+ expect(errors).toEqual([]);
+});
+test('build finder ranks live players and shows item, ability and exact-match builds',async({page})=>{
+ const errors=await fixtures(page);await page.goto('/builds.html#hero=1&p=123');
+ await expect(page.locator('#players button')).toHaveCount(1);
+ await expect(page.locator('#typical')).toContainText('Extra Spirit');
+ await expect(page.locator('#abilities')).toContainText('1 of 1 analyzed games');
+ await expect(page.locator('#timeline')).toContainText('Sold 16:40');
+ const request=page.waitForRequest(r=>r.url().includes('/api/finder/leaderboard?')&&r.url().includes('sort_by=winrate'));
+ await page.locator('#sort').selectOption('winrate');await request;
+ await expect(page.locator('#players')).toContainText('75.0%');
+ await page.getByRole('button',{name:'Seven',exact:true}).click();
+ await expect(page.locator('#facts')).toContainText('0%');
+ await page.locator('#minimum').selectOption('10');
+ await expect(page.locator('#players button')).toHaveCount(1);
+ expect(errors).toEqual([]);
+});
+test('history clearly marks stale data and empty filtered results',async({page})=>{
+ await fixtures(page);
+ await page.route('**/api/players/*/history',route=>route.fulfill({json:{data:history,fetchedAt:new Date().toISOString(),cached:true,stale:true,warning:'Upstream unavailable'}}));
+ await page.goto('/');
+ await expect(page.getByRole('status')).toContainText('Showing saved data: Upstream unavailable');
+ await page.locator('#result-filter').selectOption('3');
+ await expect(page.getByText('No matches in this view')).toBeVisible();
+ await expect(page.getByRole('button',{name:'Export JSON'})).toBeEnabled();
+});
+test('a leaderboard failure does not prevent inspecting a directly selected player',async({page})=>{
+ const errors=await fixtures(page);
+ await page.route(/\/api\/finder\/leaderboard\?/,route=>route.fulfill({status:502,json:{error:'Leaderboard temporarily unavailable'}}));
+ await page.goto('/builds.html#hero=1&p=123');
+ await expect(page.getByRole('alert')).toContainText('Leaderboard temporarily unavailable');
+ await expect(page.locator('#typical')).toContainText('Extra Spirit');
+ expect(errors).toEqual([]);
+});
+test('both pages fit a mobile viewport and keep navigation usable',async({page})=>{
+ await fixtures(page);await page.setViewportSize({width:375,height:812});
+ await page.goto('/');await expect(page.locator('tbody tr')).toHaveCount(2);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.getByRole('link',{name:'Build Finder',exact:true}).click();
+ await expect(page.locator('#players button')).toHaveCount(1);
+ expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+});
