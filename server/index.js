@@ -1,5 +1,6 @@
 import express from 'express';
 import { registerFinder } from './finder.js';
+import { registerAnalysis } from './analysis.js';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Cache, ApiError, normalizeAccount } from './cache.js';
@@ -42,6 +43,7 @@ app.get('/api/matches/:match/metadata', async (req, res) => {
   res.json(await cache.get('metadata-' + req.params.match, '/v1/matches/' + req.params.match + '/metadata', 24 * 60 * 60_000));
 });
 registerFinder(app, cache);
+registerAnalysis(app, cache);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Endpoint not found.' }));
 app.use(express.static(join(root, 'dist')));
 app.use((error, _req, res, _next) => {

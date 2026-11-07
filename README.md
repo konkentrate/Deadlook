@@ -8,7 +8,7 @@ Unofficial fan project, not affiliated with Valve or Statlocker.
 
 ## Stack
 
-- Svelte 5 + TypeScript + Vite for both match history and Build Finder.
+- Svelte 5 + TypeScript + Vite for match history, Build Finder and Match Analysis.
 - Tabler Core components/layout + Tabler Svelte icons, bundled locally.
 - Shared Deadlook design system: [docs/DESIGN.md](docs/DESIGN.md).
 - Node 22 + Express serves both pages and proxies specific Deadlock API endpoints.
@@ -22,6 +22,24 @@ The season, time window and match-type controls apply to both rankings and build
 Rank points are reported ranked progress, not a proprietary hero skill rating.
 History summaries, seasons, item analytics and detailed match builds also come from the API.
 Detailed data may be missing or have different coverage than history.
+
+## Match Analysis
+
+Open /analysis.html or use Analyze this match in a history inspector.
+It uses your browser's saved player or a search, with no account preset.
+
+- Selected-game and recent same-hero economy curves.
+- Compare your recent games, another player, or average-lobby-rank brackets.
+- Per-game medians/interquartile ranges, source-income gaps, and interval growth.
+- Recorded movement routes with selectable time windows and combat-state totals.
+- Lane/jungle income and creep/neutral kill changes, deaths and recorded downtime.
+- Up to three transparent next-game review prompts, with evidence and caveats.
+
+Routes use recorded metadata positions where available, not guessed paths from
+income. Specific camp clears, height and optimal decisions are not inferred.
+Detailed data may be missing; analysis skips Steam fallback and doesn't download
+replays. Benchmarks use a one-hour cache. See [docs/ANALYSIS.md](docs/ANALYSIS.md)
+for formulas and interpretation limits. No additional services/dependencies.
 
 ## Branding
 

@@ -99,6 +99,9 @@ a:focus-visible,button:focus-visible { outline: 2px solid var(--dl-green); outli
 .dl-game-strip { display: flex; gap: .5rem; overflow-x: auto; padding-bottom: .35rem; }
 .dl-game { display: flex; flex-direction: column; align-items: flex-start; flex-shrink: 0; min-width: 125px; padding: .65rem; font-weight: 400; }
 .dl-game.active { border-color: var(--dl-green); background: var(--dl-win-bg); }
+.dl-economy-chart { display: block; width: 100%; height: auto; }
+.dl-chart-key { display: inline-block; width: 18px; height: 3px; margin-right: 6px; vertical-align: middle; }
+.dl-route-map { display: block; width: 100%; max-width: 500px; height: auto; border: 1px solid var(--dl-line); border-radius: .5rem; overflow: hidden; }
 .spin { animation: dl-spin 1s linear infinite; }@keyframes dl-spin { to { transform: rotate(360deg); } }
 @media (max-width: 767.98px) {
  .navbar .container-xl { justify-content: space-between; }

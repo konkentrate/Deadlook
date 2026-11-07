@@ -23,13 +23,13 @@ export class Cache {
     try { return JSON.parse(await readFile(join(this.directory, key + '.json'), 'utf8')); }
     catch (e) { if (e.code === 'ENOENT' || e instanceof SyntaxError) return null; throw e; }
   }
-  async get(key, path, ttl, refresh = false, mergeHistory = false) {
+  async get(key, path, ttl, refresh = false, mergeHistory = false, allowObject = false) {
     if (this.pending.has(key)) return this.pending.get(key);
-    const task = this.load(key, path, ttl, refresh, mergeHistory);
+    const task = this.load(key, path, ttl, refresh, mergeHistory, allowObject);
     this.pending.set(key, task);
     try { return await task; } finally { this.pending.delete(key); }
   }
-  async load(key, path, ttl, refresh, mergeHistory) {
+  async load(key, path, ttl, refresh, mergeHistory, allowObject) {
     const old = await this.read(key);
     const age = old ? Date.now() - Date.parse(old.fetchedAt) : Infinity;
     // Manual refresh still respects a one-minute shared cooldown.
@@ -44,7 +44,7 @@ export class Cache {
         response.status === 429 ? 'Upstream rate limit reached. Try again later.' : 'Deadlock API returned HTTP ' + response.status,
         response.status === 429 ? 429 : 502);
       const raw = await response.json();
-      if (!Array.isArray(raw) && !key.startsWith('metadata-')) throw new ApiError('Unexpected API response.');
+      if (!Array.isArray(raw) && !((allowObject || key.startsWith('metadata-')) && raw && typeof raw === 'object')) throw new ApiError('Unexpected API response.');
       let data = raw;
       if (mergeHistory) {
         if (raw.some(m => !Number.isSafeInteger(m.match_id) || !Number.isFinite(m.start_time)))

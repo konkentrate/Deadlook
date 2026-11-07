@@ -28,14 +28,15 @@ as another dependency. Tabler includes Bootstrap-derived styles already.
 | App shell and navigation | src/App.svelte |
 | Match-history screen | src/pages/History.svelte |
 | Build Finder screen | src/pages/BuildFinder.svelte |
+| Match Analysis screen | src/pages/Analysis.svelte |
 | Shared UI patterns | src/components/ |
 | Preferences / formatting | src/lib/ |
 | Browser regression tests | tests/ui/dashboard.spec.ts |
 
-Both pages are Svelte. There is **no legacy vanilla Build Finder**.
-index.html and builds.html are Vite entry points mounting the same shell.
-Keep / and /builds.html working, including full refresh and the existing
-#hero=ID&p=ID links. Two normal menu links are enough; no router is needed yet.
+All three pages are Svelte. There is **no legacy vanilla Build Finder**.
+index.html, builds.html and analysis.html mount the same Svelte shell.
+Keep all three URLs working on full refresh, plus Build Finder #hero=ID&p=ID
+and analysis ?p=ID&hero=ID&match=ID links. Normal menu links suffice; no router.
 
 The browser gets bundled, self-hosted Tabler CSS and Svelte icons through npm.
 No CDN dependency, font CDN or paid Tabler license is required for this core UI.
@@ -98,6 +99,8 @@ Every page follows:
 
 History: lookup → player identity → four summary cards → filtered match table.
 Build Finder: global filters → hero picker → player-list / build-detail columns.
+Analysis: player/filters → economy → comparisons → interval tempo → route → review prompts.
+See ANALYSIS.md for formulas, position decoding and limits on coaching claims.
 Below lg, Build Finder stacks. Lists scroll inside their cards rather than
 turning the whole page into an unbounded leaderboard.
 
@@ -109,6 +112,8 @@ turning the whole page into an unbounded leaderboard.
 - Modal: native dialog with Tabler card framing.
 - ItemGrid: item visuals, category borders, tier and timing.
 - AbilityStrip: ordered ability points and upgrade labels.
+- EconomyChart: SVG net-worth curves with text/line-style legends and checkpoint table.
+- RouteMap: sampled world-space path; breaks at deaths, recording gaps and large jumps.
 
 Reuse these before creating another version. Keep data fetching in screens or
 small lib modules, not inside presentational ItemGrid/MatchResult.

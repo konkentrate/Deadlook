@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { IconRefresh, IconDownload, IconStar, IconArrowUpRight, IconChevronLeft, IconChevronRight, IconDatabase, IconTrophy, IconTarget, IconClock, IconFilterOff } from '@tabler/icons-svelte';
+  import { IconRefresh, IconDownload, IconStar, IconArrowUpRight, IconChevronLeft, IconChevronRight, IconDatabase, IconTrophy, IconTarget, IconClock, IconFilterOff, IconChartLine } from '@tabler/icons-svelte';
   import PageHeader from '../components/PageHeader.svelte';
   import PlayerLookup from '../components/PlayerLookup.svelte';
   import MatchResult from '../components/MatchResult.svelte';
@@ -92,5 +92,5 @@
  {:else}<div class="card"><div class="empty"><p class="empty-title">Start with a player</p><p class="empty-subtitle text-secondary">Search above, then save your player as the default for this browser.</p></div></div>{/if}
 </div></div>
 <Modal open={!!selected} title={'Match inspector · #'+(selected?.match_id??'')} onclose={()=>{++detailSequence;selected=null;}}>
- {#if selected}<p class="text-secondary">Raw player history entry. Detailed metadata is fetched only when requested.</p><pre class="dl-code">{JSON.stringify(selected,null,2)}</pre><button class="btn btn-primary" disabled={metadataLoading||!!metadata} onclick={getMetadata}>{metadataLoading?'Fetching metadata…':metadata?'Metadata loaded':'Fetch detailed metadata'}</button><p class="text-secondary small mt-2">A history entry does not guarantee detailed metadata is available.</p>{#if metadataError}<div class="alert alert-danger" role="alert">{metadataError}</div>{/if}{#if metadata}<pre class="dl-code">{metadata}</pre>{/if}{/if}
+ {#if selected}<a class="btn mb-3" href={'/analysis.html?'+new URLSearchParams({p:String(player?.account_id),hero:String(selected.hero_id),match:String(selected.match_id)})}><IconChartLine size={18}/> Analyze this match</a><p class="text-secondary">Raw player history entry. Detailed metadata is fetched only when requested.</p><pre class="dl-code">{JSON.stringify(selected,null,2)}</pre><button class="btn btn-primary" disabled={metadataLoading||!!metadata} onclick={getMetadata}>{metadataLoading?'Fetching metadata…':metadata?'Metadata loaded':'Fetch detailed metadata'}</button><p class="text-secondary small mt-2">A history entry does not guarantee detailed metadata is available.</p>{#if metadataError}<div class="alert alert-danger" role="alert">{metadataError}</div>{/if}{#if metadata}<pre class="dl-code">{metadata}</pre>{/if}{/if}
 </Modal>
