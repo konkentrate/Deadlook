@@ -17,11 +17,12 @@
  let rankings=$state<RankedPlayer[]>([]);let listLoading=$state(false);let listError=$state('');let fetchedAt=$state('');let stale=$state(false);let listWarning=$state('');let assetWarning=$state('');let booting=$state(true);
  let preferenceNotice=$state('');let player=$state<Profile|null>(null);let history=$state<Match[]>([]);let playerLoading=$state(false);let playerError=$state('');
  let stats=$state<ItemStat[]>([]);let orders=$state<AbilityOrder[]>([]);let analyticsLoading=$state(false);let itemError=$state('');let abilityError=$state('');
- let gameIndex=$state(0);let purchases=$state<Purchase[]>([]);let metadataLoading=$state(false);let metadataError=$state('');
+ let gameIndex=$state(0);let purchases=$state<Purchase[]>([]);let enemyLineup=$state<number[]>([]);let lineupNote=$state('');let metadataLoading=$state(false);let metadataError=$state('');
  let listSequence=0;let playerSequence=0;let matchSequence=0;
  const phases=[{name:'Early game',range:'0–10 min'},{name:'Mid game',range:'10–25 min'},{name:'Late game',range:'25 min +'}];
  const phase=(seconds:number)=>seconds<600?0:seconds<1500?1:2;
  const getItem=(id:number)=>items.find(it=>it.id===id);
+ const getHero=(id:number)=>heroes.find(h=>h.id===id);
  const heroImage=(h:Hero)=>h.images?.icon_hero_card_webp||h.images?.icon_image_small_webp;
  let hero=$derived(heroes.find(h=>h.id===heroId));
  let displayedHeroes=$derived(heroes.filter(h=>h.name.toLowerCase().includes(heroQuery.toLowerCase())));
@@ -45,13 +46,18 @@
  let exactItems=$derived(purchases.filter(p=>getItem(p.item_id)?.type!=='ability'));
  let exactAbilities=$derived(purchases.filter(p=>getItem(p.item_id)?.type==='ability').map(p=>p.item_id));
  function typicalTiles(index:number):Tile[]{return typical.filter(s=>phase(s.avg_buy_time_s)===index).map(s=>({item:getItem(s.item_id),id:s.item_id,label:Math.round(s.matches/denominator*100)+'%',time:duration(Math.round(s.avg_buy_time_s)),core:s.matches/denominator>=0.6}));}
- function exactTiles(index:number):Tile[]{return exactItems.filter(p=>phase(p.game_time_s)===index).map(p=>({item:getItem(p.item_id),id:p.item_id,label:duration(p.game_time_s),time:p.sold_time_s?'Sold '+duration(p.sold_time_s):undefined,sold:!!p.sold_time_s}));}
+ function exactTiles(index:number):Tile[]{return exactItems.filter(p=>phase(p.game_time_s)===index).map(p=>{
+   const stat=stats.find(s=>s.item_id===p.item_id);const usage=stat&&denominator?Math.round(stat.matches/denominator*100):null;
+   const label=usage===null?'Baseline n/a':usage<20?'Uncommon · '+usage+'%':usage+'% usual';
+   return {item:getItem(p.item_id),id:p.item_id,label,time:'Bought '+duration(p.game_time_s)+(p.sold_time_s?' · Sold '+duration(p.sold_time_s):''),sold:!!p.sold_time_s,
+     tooltip:usage===null?'No item-frequency record in available analytics.':usage<20?'Less common in this player’s available games ('+usage+'%); this does not prove the matchup caused the choice.':'Observed in about '+usage+'% of this player’s available games.'};
+ });}
  function score(p:RankedPlayer){return sort==='winrate'?(p.value<=1?p.value*100:p.value).toFixed(1)+'%':Math.round(p.value).toLocaleString();}
  function query(){return {hero_id:String(heroId),min_unix_timestamp:String(since),...(until?{max_unix_timestamp:String(until)}:{}),match_mode:mode==='ranked'?'ranked':'ranked,unranked'};}
  function share(){if(player)window.history.replaceState(null,'','#hero='+heroId+'&p='+player.account_id);}
  async function loadRankings(keepPlayer=true,refresh=false){
    const seq=++listSequence;const retained=keepPlayer?player:null;++playerSequence;++matchSequence;
-   listLoading=true;listError='';listWarning='';rankings=[];history=[];stats=[];orders=[];purchases=[];gameIndex=0;playerLoading=false;analyticsLoading=false;metadataLoading=false;
+   listLoading=true;listError='';listWarning='';rankings=[];history=[];stats=[];orders=[];purchases=[];enemyLineup=[];lineupNote='';gameIndex=0;playerLoading=false;analyticsLoading=false;metadataLoading=false;
    const params=new URLSearchParams({...query(),sort_by:sort,min_matches:minimum,...(refresh?{refresh:'1'}:{})});
    try{const r=await api<LeaderboardResult>('/api/finder/leaderboard?'+params);if(seq!==listSequence)return;
      rankings=r.data;fetchedAt=r.fetchedAt;stale=r.stale;listWarning=[r.warning,r.profileWarning].filter(Boolean).join(' ');
@@ -61,7 +67,7 @@
  }
  async function chooseHero(id:number){heroId=id;await loadRankings(false);}
  async function loadPlayer(p:Profile){
-   const seq=++playerSequence;++matchSequence;preferenceNotice='';player=p;share();playerLoading=true;playerError='';history=[];stats=[];orders=[];purchases=[];gameIndex=0;itemError='';abilityError='';metadataError='';analyticsLoading=false;metadataLoading=false;
+   const seq=++playerSequence;++matchSequence;preferenceNotice='';player=p;share();playerLoading=true;playerError='';history=[];stats=[];orders=[];purchases=[];enemyLineup=[];lineupNote='';gameIndex=0;itemError='';abilityError='';metadataError='';analyticsLoading=false;metadataLoading=false;
    try{const r=await api<Result<Match[]>>('/api/players/'+p.account_id+'/history');if(seq!==playerSequence)return;
     history=r.data;if(r.stale)playerError='Showing saved history: '+r.warning;
     if(games.length){loadGame(0);loadAnalytics(p.account_id,seq);}
@@ -80,11 +86,15 @@
  async function loadGame(index:number){
    if(index<0||index>=games.length||!player)return;
    const match=games[index];const account=player.account_id;const seq=++matchSequence;
-   gameIndex=index;purchases=[];metadataLoading=true;metadataError='';
+   gameIndex=index;purchases=[];enemyLineup=[];lineupNote='';metadataLoading=true;metadataError='';
    try{const r=await api<Result<MatchMetadata>>('/api/matches/'+match.match_id+'/metadata');if(seq!==matchSequence)return;
-     const info=r.data.match_info||r.data;const participant=info.players?.find(p=>p.account_id===account);
+     const info=r.data.match_info||r.data;const participants=info.players||[];const participant=participants.find(p=>p.account_id===account);
      if(!participant)throw new Error('This player was not found in the available match metadata.');
      purchases=[...(participant.items||[])].sort((a,b)=>a.game_time_s-b.game_time_s);
+     if(typeof participant.player_team==='number'){
+       enemyLineup=participants.filter(p=>p.player_team!==undefined&&p.player_team!==participant.player_team&&Number.isInteger(p.hero_id)&&(p.hero_id??0)>0).map(p=>p.hero_id!);
+       if(!enemyLineup.length)lineupNote='No opposing hero picks were included in this match metadata.';
+     }else lineupNote='Team assignment was not included in this metadata; opponents are not inferred.';
      if(r.stale)metadataError='Using saved metadata: '+r.warning;
    }catch(e){if(seq===matchSequence)metadataError=(e as Error).message;}finally{if(seq===matchSequence)metadataLoading=false;}
  }
@@ -174,10 +184,16 @@
     <section class="card mb-4" id="game-build"><div class="card-header"><h2 class="card-title"><IconClock size={19} class="me-2"/> Game by game</h2><div class="ms-auto d-flex gap-1"><button class="btn btn-sm btn-icon" disabled={gameIndex===0} onclick={()=>loadGame(gameIndex-1)} aria-label="Previous game"><IconChevronLeft size={17}/></button><button class="btn btn-sm btn-icon" disabled={gameIndex>=games.length-1} onclick={()=>loadGame(gameIndex+1)} aria-label="Next game"><IconChevronRight size={17}/></button></div></div>
      <div class="card-body border-bottom"><div class="dl-game-strip">{#each games as game,i}<button class="btn dl-game" class:active={gameIndex===i} aria-current={gameIndex===i?'true':undefined} onclick={()=>loadGame(i)}><MatchResult match={game}/><span class="small mt-2">{game.player_kills}/{game.player_deaths}/{game.player_assists} · {duration(game.match_duration_s)}</span><span class="text-secondary dl-micro">{dateTime(game.start_time)}</span></button>{/each}</div></div>
      <div class="card-body" id="timeline">
-      {#if selectedGame}<div class="d-flex flex-wrap align-items-center gap-2 mb-3"><a href={'https://statlocker.gg/match/'+selectedGame.match_id} target="_blank" rel="noreferrer" class="fw-semibold">Match #{selectedGame.match_id} <IconExternalLink size={14}/></a><span class="text-secondary small">{dateTime(selectedGame.start_time)} · {exactItems.length} items bought</span></div>{/if}
+      {#if selectedGame}<div class="d-flex flex-wrap align-items-center gap-2 mb-3"><a href={'https://statlocker.gg/match/'+selectedGame.match_id} target="_blank" rel="noreferrer" class="fw-semibold">Match #{selectedGame.match_id} <IconExternalLink size={14}/></a><span class="text-secondary small">{dateTime(selectedGame.start_time)} · {exactItems.length} items bought</span></div>
+       <div class="dl-matchup mb-4" aria-label="Selected match enemy composition"><h3 class="subheader mb-2">Enemy team in this match</h3>
+        {#if enemyLineup.length}<div class="dl-enemy-lineup">{#each enemyLineup as id,i}<div class="dl-enemy-hero" title={getHero(id)?.name||'Hero #'+id}>{#if getHero(id)&&heroImage(getHero(id)!)}<img src={heroImage(getHero(id)!)} alt="" loading="lazy"/>{/if}<span>{getHero(id)?.name||'Hero #'+id}</span></div>{/each}</div>
+        {:else if metadataLoading}<p class="text-secondary small mb-0" role="status">Loading match lineup…</p>
+        {:else}<p class="text-secondary small mb-0">{lineupNote||'Enemy lineup unavailable for this match.'}</p>{/if}
+       </div>
+      {/if}
       {#if metadataLoading}<div class="text-secondary" role="status"><span class="spinner-border spinner-border-sm me-2"></span> Loading exact build…</div>{/if}
       {#if metadataError}<div class="alert alert-warning" role="status">{metadataError}</div>{/if}
-      {#if purchases.length}<div class="row g-3">{#each phases as phaseInfo,i}<div class="col-12 col-md-4"><div class="dl-phase h-100"><div class="subheader mb-1">{phaseInfo.name}</div><div class="text-secondary small mb-3">{phaseInfo.range}</div><ItemGrid tiles={exactTiles(i)}/>{#if !exactTiles(i).length}<span class="text-secondary small">No items</span>{/if}</div></div>{/each}</div>{#if exactAbilities.length}<h3 class="mt-4">Ability points this game</h3><AbilityStrip ids={exactAbilities} {items}/>{/if}
+      {#if purchases.length}<p class="text-secondary small">Item labels compare this match with the selected player’s item analytics for this hero and time window. “Uncommon” means less than 20% in the available baseline—not proof that the enemy lineup caused the choice.</p><div class="row g-3">{#each phases as phaseInfo,i}<div class="col-12 col-md-4"><div class="dl-phase h-100"><div class="subheader mb-1">{phaseInfo.name}</div><div class="text-secondary small mb-3">{phaseInfo.range}</div><ItemGrid tiles={exactTiles(i)}/>{#if !exactTiles(i).length}<span class="text-secondary small">No items</span>{/if}</div></div>{/each}</div>{#if exactAbilities.length}<h3 class="mt-4">Ability points this game</h3><AbilityStrip ids={exactAbilities} {items}/>{/if}
       {:else if !metadataLoading && !metadataError}<p class="text-secondary mb-0">No item events were included in the available metadata.</p>{/if}
      </div>
     </section>

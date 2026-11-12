@@ -9,6 +9,7 @@ export interface Item {
 export interface ItemStat { item_id:number; matches:number; avg_buy_time_s:number; }
 export interface AbilityOrder { abilities:number[]; matches:number; }
 export interface Purchase { item_id:number; game_time_s:number; sold_time_s?:number; }
-export interface MatchMetadata { match_info?: {players?: {account_id:number; items?:Purchase[]}[]}; players?: {account_id:number; items?:Purchase[]}[]; }
+export interface MetadataPlayer { account_id:number; hero_id?:number; player_team?:number; items?:Purchase[]; }
+export interface MatchMetadata { match_info?: {players?: MetadataPlayer[]}; players?: MetadataPlayer[]; }
 export interface Tile { item?:Item; id:number; label:string; time?:string; core?:boolean; sold?:boolean; tooltip?:string; }
 export const itemImage=(item?:Item)=>item?.shop_image_small_webp||item?.shop_image_webp||item?.shop_image_small||item?.shop_image||item?.image_webp||item?.image;

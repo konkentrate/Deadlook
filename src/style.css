@@ -88,6 +88,11 @@ a:focus-visible,button:focus-visible { outline: 2px solid var(--dl-green); outli
 .dl-player-list .list-group-item.active { background: var(--dl-win-bg); border-color: var(--dl-line); box-shadow: inset 3px 0 var(--dl-green); }
 .dl-position { width: 1.2rem; flex-shrink: 0; }
 .dl-phase { padding: .85rem; border: 1px solid var(--dl-line); background: color-mix(in srgb, var(--dl-bg) 50%, var(--dl-panel)); border-radius: .5rem; }
+.dl-matchup { padding: .85rem; border: 1px solid var(--dl-line); border-radius: .5rem; background: color-mix(in srgb, var(--dl-bg) 50%, var(--dl-panel)); }
+.dl-enemy-lineup { display: flex; flex-wrap: wrap; gap: .6rem; }
+.dl-enemy-hero { display: flex; align-items: center; gap: .45rem; max-width: 180px; padding: .3rem .55rem .3rem .3rem; border: 1px solid var(--dl-line); border-radius: 999px; background: var(--dl-panel); font-size: .8rem; }
+.dl-enemy-hero img { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+.dl-enemy-hero span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .dl-item-grid { display: flex; flex-wrap: wrap; gap: .8rem .55rem; }
 .dl-item { width: 59px; text-align: center; }
 .dl-item-icon { position: relative; display: grid; place-items: center; width: 49px; height: 49px; margin: 0 auto; border: 2px solid var(--dl-line); border-radius: .5rem; background: var(--dl-bg); }

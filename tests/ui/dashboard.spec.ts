@@ -6,6 +6,7 @@ const makeMatch=(id:number,hero:number,start:number,outcome:number)=>({account_i
 const history=[makeMatch(101,1,now-3600,1),makeMatch(102,2,now-7200,2),makeMatch(103,1,now-90*86400,1)];
 const seasons=[{class_name:'season_2',name:'Beta Season 2',ranked_type:'normal',intervals:[{interval:2,start_timestamp:now-60*86400,end_timestamp:now+60*86400}]},{class_name:'season_1',name:'Beta Season 1',ranked_type:'normal',intervals:[{interval:1,start_timestamp:now-120*86400,end_timestamp:now-60*86400}]}];
 const item={id:10,name:'Extra Spirit',type:'upgrade',item_slot_type:'spirit',item_tier:1,shop_image_small_webp:'/deadlook-eye.svg'};
+const rareItem={id:11,name:'Situational Guard',type:'upgrade',item_slot_type:'vitality',item_tier:2,shop_image_small_webp:'/deadlook-eye.svg'};
 const ability={id:20,name:'Flame Dash',type:'ability',image_webp:'/deadlook-eye.svg'};
 async function fixtures(page:Page,remember=true){
  if(remember)await page.addInitScript(p=>localStorage.setItem('deadlook.home',JSON.stringify(p)),profile);
@@ -18,11 +19,15 @@ async function fixtures(page:Page,remember=true){
   else if(path==='/api/heroes')response=envelope(heroes);
   else if(path==='/api/seasons')response=envelope(seasons);
   else if(path.endsWith('/history'))response=envelope(history.map(m=>({...m,account_id:Number(path.split('/')[3])})));
-  else if(path==='/api/finder/items')response=envelope([item,ability]);
+  else if(path==='/api/finder/items')response=envelope([item,rareItem,ability]);
   else if(path==='/api/finder/leaderboard')response=envelope([{...profile,rank:1,matches:12,value:url.searchParams.get('sort_by')==='winrate'?0.75:65000,badge:111}]);
-  else if(path==='/api/finder/item-stats')response=envelope([{item_id:10,matches:1,avg_buy_time_s:120}]);
+  else if(path==='/api/finder/item-stats')response=envelope([{item_id:10,matches:1,avg_buy_time_s:120},{item_id:11,matches:0,avg_buy_time_s:800}]);
   else if(path==='/api/finder/ability-order-stats')response=envelope([{abilities:[20,20,20,20,20,20],matches:1}]);
-  else if(path.endsWith('/metadata'))response=envelope({match_info:{players:[{account_id:123,items:[{item_id:10,game_time_s:120,sold_time_s:1000},{item_id:20,game_time_s:60}]}]}});
+  else if(path.endsWith('/metadata'))response=envelope({match_info:{players:[
+   {account_id:123,hero_id:1,player_team:0,items:[{item_id:10,game_time_s:120,sold_time_s:1000},{item_id:20,game_time_s:60},{item_id:11,game_time_s:800}]},
+   {account_id:456,hero_id:2,player_team:1,items:[]},
+   {account_id:789,hero_id:1,player_team:0,items:[]}
+  ]}});
   else return route.fulfill({status:404,json:{error:'Unknown fixture '+path}});
   await route.fulfill({json:response});
  });
@@ -52,6 +57,10 @@ test('build finder ranks live players and shows item, ability and exact-match bu
  await expect(page.locator('#typical')).toContainText('Extra Spirit');
  await expect(page.locator('#abilities')).toContainText('1 of 1 analyzed games');
  await expect(page.locator('#timeline')).toContainText('Sold 16:40');
+ await expect(page.locator('#timeline')).toContainText('Enemy team in this match');
+ await expect(page.locator('.dl-enemy-lineup')).toHaveText('Seven');
+ await expect(page.locator('.dl-enemy-lineup .dl-enemy-hero')).toHaveCount(1);
+ await expect(page.locator('#timeline')).toContainText('Uncommon · 0%');
  const request=page.waitForRequest(r=>r.url().includes('/api/finder/leaderboard?')&&r.url().includes('sort_by=winrate'));
  await page.locator('#sort').selectOption('winrate');await request;
  await expect(page.locator('#players')).toContainText('75.0%');

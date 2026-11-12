@@ -22,7 +22,10 @@ Helper lets you enter your hero, enemy lineup and observed threats to organize
 situational purchase priorities. It is explicitly a planning aid: current API data
 is not indexed by enemy composition, so it does not claim matchup-specific item rates.
 The season, time window and match-type controls apply to both rankings and builds.
-Rank points are reported ranked progress, not a proprietary hero skill rating.
+For an available match timeline, Build Finder also shows that match’s enemy heroes
+and compares each purchased item with the selected player’s observed item frequency.
+An uncommon item is not proof that the lineup caused the purchase. Rank points are
+reported ranked progress, not a proprietary hero skill rating.
 History summaries, seasons, item analytics and detailed match builds also come from the API.
 Detailed data may be missing or have different coverage than history.
 
