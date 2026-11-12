@@ -45,6 +45,14 @@ body { min-width: 320px; }
 .main-nav { gap: .25rem; }
 .main-nav .nav-link { display: inline-flex; align-items: center; gap: .5rem; color: var(--dl-muted); }
 .main-nav .nav-link.active { background: var(--dl-win-bg); color: var(--dl-green-light); }
+.nav-build-menu { position: relative; }
+.nav-build-menu > summary { list-style: none; cursor: pointer; }
+.nav-build-menu > summary::-webkit-details-marker { display: none; }
+.nav-build-menu > summary > svg:last-child { margin-left: -.2rem; }
+.nav-build-submenu { position: absolute; z-index: 20; top: calc(100% + .35rem); left: 0; min-width: 12rem; padding: .35rem; border: 1px solid var(--dl-line); border-radius: .5rem; background: var(--dl-panel); box-shadow: 0 .5rem 1rem rgb(0 0 0 / 30%); }
+.nav-build-submenu a { display: flex; align-items: center; gap: .55rem; padding: .55rem .65rem; border-radius: .35rem; color: var(--dl-muted); text-decoration: none; white-space: nowrap; }
+.nav-build-submenu a:hover, .nav-build-submenu a:focus-visible { background: var(--dl-win-bg); color: var(--dl-cream); }
+.nav-build-submenu a.active { color: var(--dl-green-light); background: var(--dl-win-bg); }
 .page-pretitle { color: var(--dl-muted); letter-spacing: .12em; font-size: .65rem; }
 .page-title { font-size: 1.8rem; font-weight: 600; letter-spacing: -.035em; }
 .card-title { font-weight: 600; }
@@ -109,6 +117,7 @@ a:focus-visible,button:focus-visible { outline: 2px solid var(--dl-green); outli
  .navbar .container-xl { justify-content: space-between; }
  .deadlook-brand { gap: .5rem; }.dl-brand-eye { width: 34px; height: 34px; }.dl-brand-wordmark { width: 142px; height: auto; }
  .main-nav .nav-link { padding: .55rem .65rem; font-size: .75rem; }.main-nav .nav-link svg { display: none; }
+ .nav-build-submenu { left: auto; right: 0; }
  .page-header { margin-top: 1.4rem; }.page-title { font-size: 1.5rem; }
  .dl-player-list { max-height: 330px; }
  .dl-hero-grid { grid-template-columns: repeat(auto-fill, minmax(55px, 1fr)); gap: .5rem; }

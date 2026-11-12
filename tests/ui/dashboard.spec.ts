@@ -61,6 +61,16 @@ test('build finder ranks live players and shows item, ability and exact-match bu
  await expect(page.locator('#players button')).toHaveCount(1);
  expect(errors).toEqual([]);
 });
+test('build helper captures enemy picks and turns observed threats into ordered prompts',async({page})=>{
+ const errors=await fixtures(page);await page.goto('/build-helper.html');
+ await expect(page.getByRole('heading',{name:'Build Helper'})).toBeVisible();
+ await page.locator('#your-hero').selectOption('1');
+ await page.locator('#enemy-0').selectOption('2');
+ await page.getByLabel('Sustain / healing').check();
+ await expect(page.getByRole('list')).toContainText('Prioritize an anti-healing option');
+ await expect(page.getByText('not matchup statistics')).toBeVisible();
+ expect(errors).toEqual([]);
+});
 test('history clearly marks stale data and empty filtered results',async({page})=>{
  await fixtures(page);
  await page.route('**/api/players/*/history',route=>route.fulfill({json:{data:history,fetchedAt:new Date().toISOString(),cached:true,stale:true,warning:'Upstream unavailable'}}));
@@ -102,6 +112,7 @@ test('both pages fit a mobile viewport and keep navigation usable',async({page})
  await fixtures(page);await page.setViewportSize({width:375,height:812});
  await page.goto('/');await expect(page.locator('tbody tr')).toHaveCount(2);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+ await page.getByText('Build',{exact:true}).click();
  await page.getByRole('link',{name:'Build Finder',exact:true}).click();
  await expect(page.locator('#players button')).toHaveCount(1);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);

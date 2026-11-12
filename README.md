@@ -8,7 +8,7 @@ Unofficial fan project, not affiliated with Valve or Statlocker.
 
 ## Stack
 
-- Svelte 5 + TypeScript + Vite for match history, Build Finder and Match Analysis.
+- Svelte 5 + TypeScript + Vite for match history, Build Finder, Build Helper and Match Analysis.
 - Tabler Core components/layout + Tabler Svelte icons, bundled locally.
 - Shared Deadlook design system: [docs/DESIGN.md](docs/DESIGN.md).
 - Node 22 + Express serves both pages and proxies specific Deadlock API endpoints.
@@ -17,7 +17,10 @@ Unofficial fan project, not affiliated with Valve or Statlocker.
 
 The app reads available community API data; it does not collect missing games from Steam.
 Build Finder uses the live per-hero player scoreboard from Deadlock API, cached for
-five minutes, with rank/win-rate/matches sorting and a minimum-game threshold.
+five minutes, with rank/win-rate/matches sorting and a minimum-game threshold. Build
+Helper lets you enter your hero, enemy lineup and observed threats to organize
+situational purchase priorities. It is explicitly a planning aid: current API data
+is not indexed by enemy composition, so it does not claim matchup-specific item rates.
 The season, time window and match-type controls apply to both rankings and builds.
 Rank points are reported ranked progress, not a proprietary hero skill rating.
 History summaries, seasons, item analytics and detailed match builds also come from the API.
