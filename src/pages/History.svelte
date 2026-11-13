@@ -15,7 +15,8 @@
   let seasonFilter=$state(''); let heroFilter=$state(''); let resultFilter=$state(''); let matchFilter=$state('');
   let page=$state(1); let loading=$state(true); let error=$state(''); let notice=$state(''); let seasonWarning=$state(''); let fetchedAt=$state('');
   let selected=$state<Match|null>(null); let metadata=$state(''); let metadataError=$state(''); let metadataLoading=$state(false);
-  let rankResult=$state<Result<PlayerRank>|null>(null);let heroStatsResult=$state<Result<PlayerHeroStats[]>|null>(null);let regionResult=$state<Result<PlayerRegion>|null>(null);
+  let rankResult=$state<Result<PlayerRank>|null>(null);let heroStatsResult=$state<Result<PlayerHeroStats[]>|null>(null);let heroSeasonResult=$state<Result<PlayerHeroStats[]>|null>(null);let regionResult=$state<Result<PlayerRegion>|null>(null);
+  let heroSeasonFilter=$state('');let heroSeasonError=$state('');let heroSeasonLoading=$state(false);let heroStatsSequence=0;
   let rankError=$state('');let heroStatsError=$state('');let regionError=$state('');let profileLoading=$state(false);
   let sequence=0; let detailSequence=0;let profileSequence=0;
   const heroName=(id:number)=>heroes.find(h=>h.id===id)?.name ?? 'Hero #'+id;
@@ -29,10 +30,12 @@
   let winRate=$derived(wins+losses?Math.round(wins/(wins+losses)*100):null);
   let kda=$derived(filtered.length?(filtered.reduce((n,m)=>n+(m.player_kills+m.player_assists)/Math.max(1,m.player_deaths),0)/filtered.length).toFixed(2):'—');
   let hours=$derived((filtered.reduce((n,m)=>n+m.match_duration_s,0)/3600).toFixed(1));
-  let heroStats=$derived(heroStatsResult?.data||[]);
-  let heroStatsMatches=$derived(heroStats.reduce((n,h)=>n+h.matches_played,0));
-  let heroStatsWins=$derived(heroStats.reduce((n,h)=>n+h.wins,0));
-  let heroStatsKda=$derived(((heroStats.reduce((n,h)=>n+h.kills+h.assists,0))/Math.max(1,heroStats.reduce((n,h)=>n+h.deaths,0))).toFixed(2));
+  let heroStats=$derived((heroSeasonFilter?heroSeasonResult:heroStatsResult)?.data||[]);
+  let activeHeroStatsSeason=$derived(seasons.find(s=>s.class_name===heroSeasonFilter));
+  let overviewStats=$derived(heroStatsResult?.data||[]);
+  let heroStatsMatches=$derived(overviewStats.reduce((n,h)=>n+h.matches_played,0));
+  let heroStatsWins=$derived(overviewStats.reduce((n,h)=>n+h.wins,0));
+  let heroStatsKda=$derived(((overviewStats.reduce((n,h)=>n+h.kills+h.assists,0))/Math.max(1,overviewStats.reduce((n,h)=>n+h.deaths,0))).toFixed(2));
   let recentMatches=$derived([...matches].sort((a,b)=>b.start_time-a.start_time).slice(0,5));
   let latestRankedHistory=$derived(matches.filter(m=>m.match_mode===4&&m.ranked_delta!==undefined&&m.ranked_delta!==null).sort((a,b)=>b.start_time-a.start_time)[0]);
   let currentRankAsset=$derived(rankAssets.find(r=>r.tier===rankResult?.data.rank));
@@ -41,20 +44,31 @@
     const rank=rankResult?.data;if(!rank)return undefined;
     return currentRankAsset?.images?.['large_subrank'+rank.subrank+'_webp']||currentRankAsset?.images?.large_webp||currentRankAsset?.images?.large;
   });
-  let totalMvpRanked=$derived(heroStats.reduce((n,h)=>n+(h.mvp_rank_counts?.[0]||0),0));
-  let totalMvpTop3=$derived(heroStats.reduce((n,h)=>n+(h.mvp_rank_counts||[]).reduce((a,b)=>a+b,0),0));
-  let totalMvpSamples=$derived(heroStats.reduce((n,h)=>n+(h.mvp_rated_matches||0),0));
+  let totalMvpRanked=$derived(overviewStats.reduce((n,h)=>n+(h.mvp_rank_counts?.[0]||0),0));
+  let totalMvpTop3=$derived(overviewStats.reduce((n,h)=>n+(h.mvp_rank_counts||[]).reduce((a,b)=>a+b,0),0));
+  let totalMvpSamples=$derived(overviewStats.reduce((n,h)=>n+(h.mvp_rated_matches||0),0));
   function heroWinRate(stat:PlayerHeroStats){return stat.matches_played?Math.round(stat.wins/stat.matches_played*100):null;}
   function regionSampleCount(data:PlayerRegion){return data.region_month===undefined||data.region_month===null?0:(data.history||[]).filter(m=>m.month===data.region_month&&m.region).reduce((n,m)=>n+m.matches,0);}
   function heroKda(stat:PlayerHeroStats){return ((stat.kills+stat.assists)/Math.max(1,stat.deaths)).toFixed(2);}
   function clearFilters(){heroFilter='';resultFilter='';matchFilter='';page=1;}
+  async function loadHeroSeason(){
+    if(!player)return;const seq=++heroStatsSequence;const selected=seasons.find(s=>s.class_name===heroSeasonFilter);
+    heroSeasonError='';
+    if(!selected){heroSeasonResult=heroStatsResult;heroSeasonLoading=false;return;}
+    const intervals=selected.intervals||[];if(!intervals.length){heroSeasonResult=null;heroSeasonError='Season dates are unavailable.';heroSeasonLoading=false;return;}
+    const min=Math.min(...intervals.map(i=>i.start_timestamp));const max=Math.max(...intervals.map(i=>i.end_timestamp))-1;
+    heroSeasonResult=null;heroSeasonLoading=true;
+    try{const result=await api<Result<PlayerHeroStats[]>>(`/api/players/${player.account_id}/hero-stats?min_unix_timestamp=${min}&max_unix_timestamp=${max}`);if(seq===heroStatsSequence)heroSeasonResult=result;}
+    catch(e){if(seq===heroStatsSequence)heroSeasonError=(e as Error).message;}
+    finally{if(seq===heroStatsSequence)heroSeasonLoading=false;}
+  }
   async function loadProfile(profile:Profile,refresh=false){
-    const seq=++profileSequence;profileLoading=true;rankError='';heroStatsError='';regionError='';
+    const seq=++profileSequence;++heroStatsSequence;heroSeasonFilter='';heroSeasonResult=null;heroSeasonError='';heroSeasonLoading=false;profileLoading=true;rankError='';heroStatsError='';regionError='';
     if(!refresh){rankResult=null;heroStatsResult=null;regionResult=null;}
     const suffix=refresh?'?refresh=1':'';
     const tasks=[
       api<Result<PlayerRank>>('/api/players/'+profile.account_id+'/rank'+suffix).then(result=>{if(seq===profileSequence)rankResult=result;}).catch(e=>{if(seq===profileSequence)rankError=(e as Error).message;}),
-      api<Result<PlayerHeroStats[]>>('/api/players/'+profile.account_id+'/hero-stats'+suffix).then(result=>{if(seq===profileSequence)heroStatsResult=result;}).catch(e=>{if(seq===profileSequence)heroStatsError=(e as Error).message;}),
+      api<Result<PlayerHeroStats[]>>('/api/players/'+profile.account_id+'/hero-stats'+suffix).then(result=>{if(seq===profileSequence){heroStatsResult=result;if(!heroSeasonFilter)heroSeasonResult=result;}}).catch(e=>{if(seq===profileSequence)heroStatsError=(e as Error).message;}),
       api<Result<PlayerRegion>>('/api/players/'+profile.account_id+'/region'+suffix).then(result=>{if(seq===profileSequence)regionResult=result;}).catch(e=>{if(seq===profileSequence)regionError=(e as Error).message;})
     ];
     await Promise.all(tasks);
@@ -68,7 +82,7 @@
     }catch(e){if(seq===sequence)error=(e as Error).message;}finally{if(seq===sequence)loading=false;}
   }
   function remember(){if(!player)return;try{savePlayer(player);home=player;notice='Default player saved for this browser.';}catch{notice='Browser storage is unavailable; default could not be saved.';}}
-  function forget(){try{clearPlayer();++sequence;++profileSequence;home=null;player=null;matches=[];rankResult=null;heroStatsResult=null;regionResult=null;profileLoading=false;fetchedAt='';loading=false;error='';clearFilters();notice='Default player cleared for this browser.';}catch{notice='Browser storage is unavailable; default could not be cleared.';}}
+  function forget(){try{clearPlayer();++sequence;++profileSequence;++heroStatsSequence;home=null;player=null;matches=[];rankResult=null;heroStatsResult=null;heroSeasonResult=null;heroSeasonFilter='';heroSeasonError='';heroSeasonLoading=false;regionResult=null;profileLoading=false;fetchedAt='';loading=false;error='';clearFilters();notice='Default player cleared for this browser.';}catch{notice='Browser storage is unavailable; default could not be cleared.';}}
   function exportHistory(){const url=URL.createObjectURL(new Blob([JSON.stringify(matches,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='deadlook-'+player?.account_id+'-history.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function openMatch(match:Match){++detailSequence;selected=match;metadata='';metadataError='';metadataLoading=false;}
   async function getMetadata(){if(!selected)return;const seq=++detailSequence;metadataLoading=true;metadataError='';
@@ -112,13 +126,13 @@
     {:else if regionError}<div class="text-secondary small mt-2" role="status">Region unavailable: {regionError}</div>
     {:else if profileLoading}<div class="text-secondary small mt-2" role="status">Loading region…</div>{:else}<div class="text-secondary small mt-2">No region data available.</div>{/if}
    </div></section></div>
-   <div class="col-6 col-md-6 col-xl-3"><section class="card h-100"><div class="card-body"><div class="d-flex align-items-center justify-content-between"><div class="subheader">API hero stats</div><IconChartLine class="text-secondary" size={19}/></div>
-    {#if heroStatsResult}<div class="h2 mt-2 mb-1">{heroStatsMatches.toLocaleString()} matches</div><div class="text-secondary small">{heroStats.length} heroes · aggregate KDA {heroStats.length?heroStatsKda:'—'} · {heroStatsWins.toLocaleString()} wins</div><div class="text-secondary dl-micro mt-2">API fetched {new Date(heroStatsResult.fetchedAt).toLocaleDateString()}</div>{#if heroStatsResult.stale}<div class="text-warning small mt-2">Using cached hero stats: {heroStatsResult.warning}</div>{/if}{#if heroStatsError}<div class="text-warning small mt-2">Refresh failed: {heroStatsError}</div>{/if}
+   <div class="col-6 col-md-6 col-xl-3"><section class="card h-100"><div class="card-body"><div class="d-flex align-items-center justify-content-between"><div class="subheader">API hero stats · all dates</div><IconChartLine class="text-secondary" size={19}/></div>
+    {#if heroStatsResult}<div class="h2 mt-2 mb-1">{heroStatsMatches.toLocaleString()} matches</div><div class="text-secondary small">{overviewStats.length} heroes · aggregate KDA {overviewStats.length?heroStatsKda:'—'} · {heroStatsWins.toLocaleString()} wins</div><div class="text-secondary dl-micro mt-2">API fetched {new Date(heroStatsResult.fetchedAt).toLocaleDateString()}</div>{#if heroStatsResult.stale}<div class="text-warning small mt-2">Using cached hero stats: {heroStatsResult.warning}</div>{/if}{#if heroStatsError}<div class="text-warning small mt-2">Refresh failed: {heroStatsError}</div>{/if}
     {:else if heroStatsError}<div class="text-secondary small mt-2" role="status">Hero stats unavailable: {heroStatsError}</div>
     {:else if profileLoading}<div class="text-secondary small mt-2" role="status">Loading hero stats…</div>{:else}<div class="text-secondary small mt-2">No hero stats available.</div>{/if}
    </div></section></div>
    <div class="col-6 col-md-6 col-xl-3"><section class="card h-100"><div class="card-body"><div class="d-flex align-items-center justify-content-between"><div class="subheader">MVP placements</div><IconAward class="text-secondary" size={19}/></div>
-    {#if heroStatsResult&&totalMvpSamples}<div class="h2 mt-2 mb-1">{totalMvpRanked} MVP · {totalMvpTop3} top 3</div><div class="text-secondary small">Across {totalMvpSamples} MVP-rated hero games; older data may be missing.</div>
+    {#if heroStatsResult&&totalMvpSamples}<div class="h2 mt-2 mb-1">{totalMvpRanked} MVP · {totalMvpTop3} top 3</div><div class="text-secondary small">Across {totalMvpSamples} MVP-rated hero games across all available dates; older data may be missing.</div>
     {:else if heroStatsResult}<div class="text-secondary small mt-2">No MVP-rated match data available.</div>
     {:else if profileLoading}<div class="text-secondary small mt-2" role="status">Loading MVP stats…</div>{:else}<div class="text-secondary small mt-2">MVP stats unavailable.</div>{/if}
    </div></section></div>
@@ -130,8 +144,11 @@
    <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="d-flex align-items-center justify-content-between"><div class="subheader">Average KDA</div><IconTarget class="text-secondary" size={19}/></div><div class="h1 mt-2 mb-1">{kda}</div><div class="text-secondary small" title="Mean of each match’s (kills + assists) / max(1, deaths)">Per-match KDA average</div></div></div></div>
    <div class="col-6 col-lg-3"><div class="card"><div class="card-body"><div class="d-flex align-items-center justify-content-between"><div class="subheader">Time in matches</div><IconClock class="text-secondary" size={19}/></div><div class="h1 mt-2 mb-1">{hours}<span class="text-secondary fs-3 ms-1">h</span></div><div class="text-secondary small">In the filtered history</div></div></div></div>
   </div>
-  <section class="card mb-4" aria-labelledby="hero-stats-heading"><div class="card-header"><div><h2 class="card-title" id="hero-stats-heading">Hero performance</h2><div class="text-secondary small">Deadlock API aggregate · normal mode · ranked + unranked · all available API dates</div></div></div>
-   {#if heroStatsError&&!heroStatsResult}<div class="card-body"><div class="alert alert-warning mb-0" role="status">Hero performance couldn’t be loaded: {heroStatsError}</div></div>
+  <section class="card mb-4" aria-labelledby="hero-stats-heading"><div class="card-header d-flex flex-wrap gap-3 align-items-center"><div><h2 class="card-title" id="hero-stats-heading">Hero performance</h2><div class="text-secondary small">Deadlock API aggregate · normal mode · ranked + unranked · {heroSeasonFilter?'selected season date range':'all available API dates'}</div></div><div class="ms-auto"><label class="form-label" for="hero-season-filter">Hero stats season</label><select class="form-select" id="hero-season-filter" bind:value={heroSeasonFilter} onchange={loadHeroSeason}><option value="">All available dates</option>{#each seasons as s}<option value={s.class_name}>{s.name}</option>{/each}</select></div></div>
+   {#if (activeHeroStatsSeason?.intervals.length??0)>1}<div class="card-body text-secondary small border-bottom">This season has multiple intervals; API stats use their outer date bounds and may include gaps between intervals.</div>{/if}
+   {#if heroSeasonError&&!heroStats.length}<div class="card-body"><div class="alert alert-warning mb-0" role="status">Hero performance couldn’t be loaded: {heroSeasonError}</div></div>
+   {:else if heroSeasonLoading}<div class="card-body" role="status"><span class="spinner-border spinner-border-sm me-2"></span>Loading hero statistics…</div>
+   {:else if heroStatsError&&!heroStatsResult}<div class="card-body"><div class="alert alert-warning mb-0" role="status">Hero performance couldn’t be loaded: {heroStatsError}</div></div>
    {:else if profileLoading&&!heroStatsResult}<div class="card-body" role="status"><span class="spinner-border spinner-border-sm me-2"></span>Loading hero statistics…</div>
    {:else if heroStats.length}<div class="table-responsive"><table class="table table-vcenter card-table table-hover mb-0"><thead><tr><th>Hero</th><th>Games</th><th>Win rate</th><th>Aggregate KDA</th><th>Kills / min</th><th>Deaths / min</th><th>Assists / min</th><th>Souls / min</th><th>Damage / min</th><th>Objective damage / min</th></tr></thead><tbody>
     {#each [...heroStats].sort((a,b)=>b.matches_played-a.matches_played) as stat}<tr>
@@ -139,6 +156,7 @@
      <td class="font-monospace">{stat.matches_played}</td><td>{heroWinRate(stat)===null?'—':heroWinRate(stat)+'%'}<div class="text-secondary small">{stat.wins} wins</div></td>
      <td class="font-monospace" title="Aggregate (kills + assists) / max(1, deaths)">{heroKda(stat)}</td><td class="font-monospace">{stat.kills_per_min?.toFixed(2)??'—'}</td><td class="font-monospace">{stat.deaths_per_min?.toFixed(2)??'—'}</td><td class="font-monospace">{stat.assists_per_min?.toFixed(2)??'—'}</td><td class="font-monospace">{stat.networth_per_min?.toFixed(0)??'—'}</td><td class="font-monospace">{stat.damage_per_min?.toFixed(0)??'—'}</td><td class="font-monospace">{stat.obj_damage_per_min?.toFixed(0)??'—'}</td>
     </tr>{/each}</tbody></table></div><div class="card-body text-secondary small">Win rate and aggregate KDA use API hero-stat totals. A hero’s sample size is shown; this dataset can differ in coverage from the match history below.</div>
+   {:else if heroSeasonFilter&&heroSeasonResult}<div class="empty"><p class="empty-title">No hero statistics for this season</p><p class="empty-subtitle text-secondary">The API returned no hero data in {activeHeroStatsSeason?.name??'the selected season'}.</p></div>
    {:else if heroStatsResult}<div class="empty"><p class="empty-title">No hero statistics available</p><p class="empty-subtitle text-secondary">The API returned no hero data for this player.</p></div>
    {:else}<div class="empty"><p class="empty-title">Hero statistics unavailable</p><p class="empty-subtitle text-secondary">Try syncing again later.</p></div>{/if}
   </section>

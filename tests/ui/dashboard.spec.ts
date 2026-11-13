@@ -25,7 +25,7 @@ async function fixtures(page:Page,remember=true){
   else if(path==='/api/seasons')response=envelope(seasons);
   else if(path==='/api/analysis/ranks')response=envelope(rankAssets);
   else if(path.endsWith('/rank'))response=envelope(path.split('/')[3]==='456'?friendRankData:rankData);
-  else if(path.endsWith('/hero-stats'))response=envelope([playerHeroStats,zeroDeathHeroStats]);
+  else if(path.endsWith('/hero-stats'))response=envelope(url.searchParams.has('min_unix_timestamp')?[{...playerHeroStats,matches_played:3,wins:1}]:[playerHeroStats,zeroDeathHeroStats]);
   else if(path.endsWith('/region'))response=envelope({account_id:123,region:'eu_west',region_month:now-86400,history:[]});
   else if(path.endsWith('/history'))response=envelope(history.map(m=>({...m,account_id:Number(path.split('/')[3])})));
   else if(path==='/api/finder/items')response=envelope([item,rareItem,ability]);
@@ -50,6 +50,15 @@ test('history uses season filters, native accessible inspector, and default play
  await expect(page.getByText('Latest match rank progress: +12 points')).toBeVisible();
  await expect(page.getByText('eu west',{exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Hero performance'})).toBeVisible();
+ const seasonalRequest=page.waitForRequest(r=>r.url().includes('/hero-stats?min_unix_timestamp='));
+ await page.locator('#hero-season-filter').selectOption('season_1');
+ const seasonalUrl=new URL(await seasonalRequest.then(r=>r.url()));
+ expect(seasonalUrl.searchParams.get('min_unix_timestamp')).toBe(String(now-120*86400));
+ expect(seasonalUrl.searchParams.get('max_unix_timestamp')).toBe(String(now-60*86400-1));
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('3');
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('33%');
+ await expect(page.getByText('selected season date range')).toBeVisible();
+ await page.locator('#hero-season-filter').selectOption('');
  await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('67%');
  await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('5.00');
  await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Seven'})).toContainText('10.00');
