@@ -5,6 +5,7 @@
   import PlayerLookup from '../components/PlayerLookup.svelte';
   import MatchResult from '../components/MatchResult.svelte';
   import Modal from '../components/Modal.svelte';
+  import MatchAnalysis from '../components/MatchAnalysis.svelte';
   import { api, duration, type Profile, type Hero, type Match, type Result, type Season } from '../types';
   import { currentSeason, inSeason } from '../seasons.js';
   import { defaultPlayer, savePlayer, clearPlayer } from '../lib/preferences';
@@ -14,11 +15,11 @@
   let matches = $state<Match[]>([]); let heroes = $state<Hero[]>([]); let seasons = $state<Season[]>([]);let rankAssets=$state<RankAsset[]>([]);
   let seasonFilter=$state(''); let heroFilter=$state(''); let resultFilter=$state(''); let matchFilter=$state('');
   let page=$state(1); let loading=$state(true); let error=$state(''); let notice=$state(''); let seasonWarning=$state(''); let fetchedAt=$state('');
-  let selected=$state<Match|null>(null); let metadata=$state(''); let metadataError=$state(''); let metadataLoading=$state(false);
+  let selected=$state<Match|null>(null);
   let rankResult=$state<Result<PlayerRank>|null>(null);let heroStatsResult=$state<Result<PlayerHeroStats[]>|null>(null);let heroSeasonResult=$state<Result<PlayerHeroStats[]>|null>(null);let regionResult=$state<Result<PlayerRegion>|null>(null);
   let heroSeasonFilter=$state('');let heroSeasonError=$state('');let heroSeasonLoading=$state(false);let heroStatsSequence=0;
   let rankError=$state('');let heroStatsError=$state('');let regionError=$state('');let profileLoading=$state(false);
-  let sequence=0; let detailSequence=0;let profileSequence=0;
+  let sequence=0;let profileSequence=0;
   const heroName=(id:number)=>heroes.find(h=>h.id===id)?.name ?? 'Hero #'+id;
   const heroImage=(id:number)=>heroes.find(h=>h.id===id)?.images?.icon_image_small_webp;
   let activeSeason=$derived(seasons.find(s=>s.class_name===seasonFilter));
@@ -75,25 +76,39 @@
     if(seq===profileSequence)profileLoading=false;
   }
   async function load(profile:Profile,refresh=false){
-    const seq=++sequence; player=profile;loading=true;error='';notice='';loadProfile(profile,refresh);
+    const seq=++sequence;if(player?.account_id!==profile.account_id)selected=null;player=profile;loading=true;error='';notice='';loadProfile(profile,refresh);
+    const params=new URLSearchParams(location.search);if(params.has('p')){params.set('p',String(profile.account_id));params.delete('match');params.delete('hero');window.history.replaceState(null,'','/'+(params.size?'?'+params:''));}
     if(!refresh){matches=[];fetchedAt='';clearFilters();}
     try{const result=await api<Result<Match[]>>('/api/players/'+profile.account_id+'/history'+(refresh?'?refresh=1':''));if(seq!==sequence)return;
       matches=result.data;fetchedAt=result.fetchedAt;notice=result.stale?'Showing saved data: '+result.warning:refresh&&result.cached?'Using the recent snapshot. Refresh has a one-minute cooldown.':'';
     }catch(e){if(seq===sequence)error=(e as Error).message;}finally{if(seq===sequence)loading=false;}
   }
   function remember(){if(!player)return;try{savePlayer(player);home=player;notice='Default player saved for this browser.';}catch{notice='Browser storage is unavailable; default could not be saved.';}}
-  function forget(){try{clearPlayer();++sequence;++profileSequence;++heroStatsSequence;home=null;player=null;matches=[];rankResult=null;heroStatsResult=null;heroSeasonResult=null;heroSeasonFilter='';heroSeasonError='';heroSeasonLoading=false;regionResult=null;profileLoading=false;fetchedAt='';loading=false;error='';clearFilters();notice='Default player cleared for this browser.';}catch{notice='Browser storage is unavailable; default could not be cleared.';}}
+  function forget(){try{clearPlayer();++sequence;++profileSequence;++heroStatsSequence;selected=null;home=null;player=null;matches=[];rankResult=null;heroStatsResult=null;heroSeasonResult=null;heroSeasonFilter='';heroSeasonError='';heroSeasonLoading=false;regionResult=null;profileLoading=false;fetchedAt='';loading=false;error='';clearFilters();notice='Default player cleared for this browser.';}catch{notice='Browser storage is unavailable; default could not be cleared.';}}
   function exportHistory(){const url=URL.createObjectURL(new Blob([JSON.stringify(matches,null,2)],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='deadlook-'+player?.account_id+'-history.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
-  function openMatch(match:Match){++detailSequence;selected=match;metadata='';metadataError='';metadataLoading=false;}
-  async function getMetadata(){if(!selected)return;const seq=++detailSequence;metadataLoading=true;metadataError='';
-    try{const result=await api<Result<unknown>>('/api/matches/'+selected.match_id+'/metadata');if(seq===detailSequence)metadata=JSON.stringify(result.data,null,2);}catch(e){if(seq===detailSequence)metadataError=(e as Error).message;}finally{if(seq===detailSequence)metadataLoading=false;}}
+  function openMatch(match:Match){
+    if(!player)return;selected=match;
+    const existing=new URLSearchParams(location.search),params=new URLSearchParams();
+    const filters:{[key:string]:string[]}={days:['14','30','90'],mode:['ranked','unranked','ranked,unranked'],length:['any','short','medium','long']};
+    for(const [key,allowed] of Object.entries(filters)){const value=existing.get(key);if(value&&allowed.includes(value))params.set(key,value);}
+    params.set('p',String(player.account_id));params.set('hero',String(match.hero_id));params.set('match',String(match.match_id));
+    window.history.replaceState(null,'','/?'+params);
+  }
+  function closeMatch(){selected=null;const params=new URLSearchParams(location.search);params.delete('match');params.delete('hero');window.history.replaceState(null,'','/'+(params.size?'?'+params:''));}
+  function accountId(value:string|null):number|null{if(!value||!/^\d{1,20}$/.test(value))return null;try{let id=BigInt(value);if(id>=76561197960265728n)id-=76561197960265728n;return id>0n&&id<=4294967295n?Number(id):null;}catch{return null;}}
   onMount(()=>{(async()=>{
     const assets=await Promise.allSettled([api<Result<Hero[]>>('/api/heroes'),api<Result<Season[]>>('/api/seasons'),api<Result<RankAsset[]>>('/api/analysis/ranks')]);
     if(assets[0].status==='fulfilled')heroes=assets[0].value.data;
     if(assets[1].status==='fulfilled'){seasons=assets[1].value.data.filter(s=>s.ranked_type==='normal'&&s.intervals.length).sort((a,b)=>b.intervals[0].start_timestamp-a.intervals[0].start_timestamp);seasonFilter=currentSeason(seasons,Date.now()/1000);if(assets[1].value.stale)seasonWarning='Using cached season dates.';}
     else seasonWarning='Season dates are unavailable. All-time history remains available.';
     if(assets[2].status==='fulfilled')rankAssets=assets[2].value.data;
-    try{home=await defaultPlayer();if(home)await load(home);}catch(e){error=(e as Error).message;}finally{loading=false;}
+    const params=new URLSearchParams(location.search);const requestedAccount=accountId(params.get('p'));
+    const hasMatchLink=location.pathname==='/analysis.html'||params.has('match');
+    const requestedMatch=hasMatchLink&&requestedAccount&&/^\d{1,15}$/.test(params.get('match')||'')?Number(params.get('match')):0;
+    try{try{home=await defaultPlayer();}catch(e){if(!requestedAccount)throw e;}let initial=requestedAccount?{account_id:requestedAccount,personaname:'Player '+requestedAccount}:home;
+      if(requestedAccount){try{const found=(await api<Result<Profile[]>>('/api/search?q='+requestedAccount)).data.find(p=>p.account_id===requestedAccount);if(found)initial=found;}catch{}}
+      if(initial){await load(initial);if(requestedMatch){const match=matches.find(m=>m.match_id===requestedMatch);if(match)openMatch(match);else notice='The linked match is not present in this player’s available history.';}}
+    }catch(e){error=(e as Error).message;}finally{loading=false;}
   })();});
 </script>
 
@@ -185,6 +200,11 @@
   {#if fetchedAt}<p class="text-secondary small mt-3">Last successful API fetch: {new Date(fetchedAt).toLocaleString()}.</p>{/if}
  {:else}<div class="card"><div class="empty"><p class="empty-title">Start with a player</p><p class="empty-subtitle text-secondary">Search above, then save your player as the default for this browser.</p></div></div>{/if}
 </div></div>
-<Modal open={!!selected} title={'Match inspector · #'+(selected?.match_id??'')} onclose={()=>{++detailSequence;selected=null;}}>
- {#if selected}<a class="btn mb-3" href={'/analysis.html?'+new URLSearchParams({p:String(player?.account_id),hero:String(selected.hero_id),match:String(selected.match_id)})}><IconChartLine size={18}/> Analyze this match</a><p class="text-secondary">Raw player history entry. Detailed metadata is fetched only when requested.</p><pre class="dl-code">{JSON.stringify(selected,null,2)}</pre><button class="btn btn-primary" disabled={metadataLoading||!!metadata} onclick={getMetadata}>{metadataLoading?'Fetching metadata…':metadata?'Metadata loaded':'Fetch detailed metadata'}</button><p class="text-secondary small mt-2">A history entry does not guarantee detailed metadata is available.</p>{#if metadataError}<div class="alert alert-danger" role="alert">{metadataError}</div>{/if}{#if metadata}<pre class="dl-code">{metadata}</pre>{/if}{/if}
+<Modal open={!!selected} title={'Match report · #'+(selected?.match_id??'')} onclose={closeMatch}>
+ {#if selected&&player}<div class="dl-match-summary mb-4"><div class="d-flex flex-wrap gap-3 align-items-center mb-3"><div>{#if heroImage(selected.hero_id)}<img class="avatar avatar-md me-2" src={heroImage(selected.hero_id)} alt=""/>{/if}<strong>{heroName(selected.hero_id)}</strong><div class="text-secondary small">{dateTime(selected.start_time)} · {duration(selected.match_duration_s)}</div></div><MatchResult match={selected}/><span class="badge bg-secondary-lt">Level {selected.hero_level}</span><span class="font-monospace ms-auto">K/D/A {selected.player_kills}/{selected.player_deaths}/{selected.player_assists}</span></div>
+  <div class="row g-2"><div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="subheader">KDA ratio</div><strong>{((selected.player_kills+selected.player_assists)/Math.max(1,selected.player_deaths)).toFixed(2)}</strong></div></div></div><div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="subheader">Net worth / min</div><strong>{selected.match_duration_s>0?(selected.net_worth/(selected.match_duration_s/60)).toFixed(0):'—'}</strong></div></div></div><div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="subheader">Last hits / min</div><strong>{selected.match_duration_s>0?(selected.last_hits/(selected.match_duration_s/60)).toFixed(1):'—'}</strong></div></div></div><div class="col-6 col-md-3"><div class="card"><div class="card-body"><div class="subheader">Denies / min</div><strong>{selected.match_duration_s>0?(selected.denies/(selected.match_duration_s/60)).toFixed(1):'—'}</strong></div></div></div></div>
+  {#if selected.ranked_delta!==undefined&&selected.ranked_delta!==null}<p class="text-secondary small mt-3 mb-0">Rank progress {selected.ranked_delta>0?'+':''}{selected.ranked_delta} points · not MMR</p>{/if}
+ </div>
+ {#key selected.match_id}<MatchAnalysis player={player} {selected} history={matches} ranks={rankAssets.filter(r=>r.tier>0&&r.tier<=11).map(r=>({tier:r.tier,name:r.name}))}/>{/key}
+ <details class="mt-3"><summary>Raw history entry</summary><pre class="dl-code">{JSON.stringify(selected,null,2)}</pre></details>{/if}
 </Modal>

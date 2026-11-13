@@ -70,10 +70,14 @@ a:focus-visible,button:focus-visible { outline: 2px solid var(--dl-green); outli
 .dl-loss td:first-child { box-shadow: inset 3px 0 var(--dl-red); }
 .dl-min-width { min-width: 0; }
 .dl-micro { font-size: .68rem; }
-/* Native modal handles focus trapping, Escape and focus restoration; Tabler styles its card. */
-.dl-dialog { position: fixed; inset: 0; margin: auto; width: min(920px, calc(100vw - 2rem)); max-height: 88dvh; padding: 0; overflow: auto; color: var(--dl-cream); background: var(--dl-panel); }
+/* Native modal handles focus trapping, Escape and focus restoration; its body scrolls independently. */
+.dl-dialog { position: fixed; inset: 0; margin: auto; display: flex; flex-direction: column; width: min(1120px, calc(100vw - 2rem)); max-height: 94dvh; padding: 0; overflow: hidden; color: var(--dl-cream); background: var(--dl-panel); }
 .dl-dialog:not([open]) { display: none; }
+.dl-dialog[open] { display: flex; }
 .dl-dialog::backdrop { background: rgb(0 0 0 / 70%); }
+.dl-dialog > .card-header { flex: 0 0 auto; position: sticky; top: 0; z-index: 2; background: var(--dl-panel); }
+.dl-dialog > .card-body { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+@media (max-width: 575px) { .dl-dialog { inset: .5rem; width: calc(100vw - 1rem); max-height: calc(100dvh - 1rem); } .dl-dialog > .card-body { padding: .75rem; } }
 .dl-code { max-height: 45dvh; overflow: auto; padding: 1rem; background: var(--dl-bg); border: 1px solid var(--dl-line); border-radius: .5rem; color: var(--dl-cream); font-size: .72rem; }
 /* Game-only components not provided by Tabler. */
 .dl-hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: .6rem; }

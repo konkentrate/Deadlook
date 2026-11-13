@@ -29,15 +29,16 @@ as another dependency. Tabler includes Bootstrap-derived styles already.
 | App shell and navigation | src/App.svelte |
 | Match-history screen | src/pages/History.svelte |
 | Build Finder screen | src/pages/BuildFinder.svelte |
-| Match Analysis screen | src/pages/Analysis.svelte |
+| Match inspection and embedded analysis | src/pages/History.svelte |
 | Shared UI patterns | src/components/ |
 | Preferences / formatting | src/lib/ |
 | Browser regression tests | tests/ui/dashboard.spec.ts |
 
-All three pages are Svelte. There is **no legacy vanilla Build Finder**.
-index.html, builds.html and analysis.html mount the same Svelte shell.
-Keep all three URLs working on full refresh, plus Build Finder #hero=ID&p=ID
-and analysis ?p=ID&hero=ID&match=ID links. Normal menu links suffice; no router.
+All screen entry files mount the shared Svelte shell. There is **no legacy vanilla Build Finder**.
+index.html, builds.html, build-helper.html and analysis.html remain valid full-refresh entries;
+analysis.html is a compatibility alias that opens the History match inspector for legacy
+?p=ID&hero=ID&match=ID links. Keep Build Finder #hero=ID&p=ID links working. Normal
+menu links suffice; no router.
 
 The browser gets bundled, self-hosted Tabler CSS and Svelte icons through npm.
 No CDN dependency, font CDN or paid Tabler license is required for this core UI.
@@ -100,9 +101,9 @@ Every page follows:
 4. Filters/lookup and content composed with row, col-*, row-cards, card.
 5. Shared footer with data-source and unofficial-project disclosure.
 
-History/Profile: lookup → player identity and rank/region overview → hero-performance table and recent-match previews → filtered match table and inspector.
+History/Profile: lookup → player identity and rank/region overview → hero-performance table and recent-match previews → filtered match table and match inspector. Opening a match automatically loads its embedded analysis.
 Build Finder: global filters → hero picker → player-list / build-detail columns.
-Analysis: player/filters → economy → comparisons → interval tempo → route → review prompts.
+Match inspection: immediate history summary → economy and recent comparison → interval tempo → recorded route → review prompts. Legacy `/analysis.html` match links route into this inspector.
 See ANALYSIS.md for formulas, position decoding and limits on coaching claims.
 Below lg, Build Finder stacks. Lists scroll inside their cards rather than
 turning the whole page into an unbounded leaderboard.

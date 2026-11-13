@@ -8,7 +8,7 @@ Unofficial fan project, not affiliated with Valve or Statlocker.
 
 ## Stack
 
-- Svelte 5 + TypeScript + Vite for match history, Build Finder, Build Helper and Match Analysis.
+- Svelte 5 + TypeScript + Vite for player profile/history, Build Finder and Build Helper.
 - Tabler Core components/layout + Tabler Svelte icons, bundled locally.
 - Shared Deadlook design system: [docs/DESIGN.md](docs/DESIGN.md).
 - Node 22 + Express serves both pages and proxies specific Deadlock API endpoints.
@@ -32,10 +32,13 @@ reported ranked progress, not a proprietary hero skill rating.
 History summaries, seasons, item analytics and detailed match builds also come from the API.
 Detailed data may be missing or have different coverage than history.
 
-## Match Analysis
+## Match inspection & analysis
 
-Open /analysis.html or use Analyze this match in a history inspector.
-It uses your browser's saved player or a search, with no account preset.
+Click any history match to open its inspector. The summary appears immediately, and
+recorded match analysis loads automatically in the same dialog—no second load action.
+Legacy `/analysis.html?p=ACCOUNT&hero=HERO&match=MATCH` links open that match in the
+History inspector; without a match they fall back to History. There is no separate
+analysis navigation/page.
 
 - Selected-game and recent same-hero economy curves.
 - Compare your recent games, another player, or average-lobby-rank brackets.

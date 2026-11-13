@@ -32,6 +32,10 @@ async function fixtures(page:Page,remember=true){
   else if(path==='/api/finder/leaderboard')response=envelope([{...profile,rank:1,matches:12,value:url.searchParams.get('sort_by')==='winrate'?0.75:65000,badge:111}]);
   else if(path==='/api/finder/item-stats')response=envelope([{item_id:10,matches:1,avg_buy_time_s:120},{item_id:11,matches:0,avg_buy_time_s:800}]);
   else if(path==='/api/finder/ability-order-stats')response=envelope([{abilities:[20,20,20,20,20,20],matches:1}]);
+  else if(path.startsWith('/api/analysis/match/'))response=envelope({matchId:Number(path.split('/').at(-1)),accountId:123,heroId:1,duration:1800,kills:8,deathCount:4,assists:10,netWorth:30000,stats:[180,360,540,720,900,1200,1500,1800].map(time=>({time,net_worth:time*16,gold_lane_creep:time*2,gold_lane_creep_orbs:time,gold_neutral_creep:time,gold_neutral_creep_orbs:0,gold_player:time,gold_player_orbs:0,gold_boss:time/2,gold_boss_orb:0,gold_treasure:0,creep_kills:time/30,neutral_kills:time/90,player_damage:time*50,boss_damage:time*5})),deaths:[{time:400,duration:60},{time:900,duration:60}],route:[],routeInterval:null,routeVersion:null});
+  else if(path==='/api/analysis/curve')response=envelope([180,360,540,720,900,1200,1500,1800].map(game_time=>({game_time,samples:25,net_worth_avg:game_time*15,gold_lane_creep_avg:game_time*4,gold_lane_creep_orbs_avg:game_time,gold_neutral_creep_avg:game_time*2,gold_neutral_creep_orbs_avg:0,gold_player_avg:game_time*2,gold_player_orbs_avg:0,gold_boss_avg:game_time,gold_boss_orb_avg:0,gold_treasure_avg:0})));
+  else if(path==='/api/analysis/metrics')response=envelope([{bucket:1,net_worth_per_min:{avg:1000,percentile25:800,percentile50:1000,percentile75:1200},deaths:{avg:5,percentile25:3,percentile50:5,percentile75:7},player_damage_per_min:{avg:2000,percentile25:1500,percentile50:2000,percentile75:2500},boss_damage_per_min:{avg:400,percentile25:250,percentile50:400,percentile75:600}}]);
+  else if(path==='/api/analysis/map')response=envelope({radius:10000,images:{}});
   else if(path.endsWith('/metadata'))response=envelope({match_info:{players:[
    {account_id:123,hero_id:1,player_team:0,items:[{item_id:10,game_time_s:120,sold_time_s:1000},{item_id:20,game_time_s:60},{item_id:11,game_time_s:800}]},
    {account_id:456,hero_id:2,player_team:1,items:[]},
@@ -69,8 +73,9 @@ test('history uses season filters, native accessible inspector, and default play
  await page.locator('#season').selectOption('season_2');
  const details=page.getByRole('button',{name:'Details for match 101'});
  await details.click();await expect(page.getByRole('dialog')).toBeVisible();
- await page.getByRole('button',{name:'Fetch detailed metadata'}).click();
- await expect(page.getByRole('button',{name:'Metadata loaded'})).toBeVisible();
+ await expect(page.getByText('Net worth / min')).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Performance comparison'})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Next-game focus'})).toBeVisible();
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(details).toBeFocused();
  await page.locator('#player-search').fill('Fixture');await page.getByRole('button',{name:'Find player',exact:true}).click();
  await page.getByRole('button',{name:/Fixture Friend Account 456/}).click();

@@ -1,10 +1,6 @@
 # Match Analysis: data contract
 
-Entry: /analysis.html. Optional links: ?p=ACCOUNT&hero=HERO&match=MATCH.
-Generated links also preserve days/mode/length filters. Out-of-window linked
-games are disclosed, not silently presented as the requested match.
-No bundled account; read the browser's existing saved player, never change it
-implicitly. Match-history inspectors link here.
+Entry: match inspector embedded in History. Clicking a history match automatically loads the selected match analysis. Legacy `/analysis.html?p=ACCOUNT&hero=HERO&match=MATCH` links are retained by Vite and open that match in the same inspector; without a match, they fall back to History. There is no separate analysis page or navigation item. The history inspector uses the selected player's match history and never changes the saved player implicitly.
 
 ## Sources and request budget
 
@@ -16,9 +12,12 @@ implicitly. Match-history inspectors link here.
 Queries require one hero and an explicit ordered date window of at most 90 days.
 Game mode is fixed to normal; match modes/duration/badge filters are validated.
 No arbitrary endpoint, query or SQL forwarding. Unrecognized query fields are
-not forwarded. At most two analytics queries per analysis load; stale responses
-cannot overwrite newer selections. Metadata is fetched only for the selected
-game, not bulk downloaded. No replay downloads or background collection.
+not forwarded. Self comparison uses curve and metric queries; optional player or
+lobby-rank comparison adds one peer pair. Requests run in batches of at most two,
+and stale responses cannot overwrite newer selections. Metadata is fetched only
+for the selected game after its inspector opens, not for every history row. Map
+art is loaded only when the selected match has route samples. No replay downloads
+or background collection.
 
 Benchmarks cache one hour, raw metadata 24 hours, map/ranks 24 hours. Metadata
 shares the existing match cache and stale fallback; analysis never initiates a
