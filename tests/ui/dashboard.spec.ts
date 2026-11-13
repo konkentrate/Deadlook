@@ -75,7 +75,7 @@ test('history uses season filters, native accessible inspector, and default play
  await page.locator('#season').selectOption('season_2');
  const details=page.getByRole('button',{name:'Details for match 101'});
  await details.click();await expect(page.getByRole('dialog')).toBeVisible();
- await expect(page.getByText('Net worth / min')).toBeVisible();
+ await expect(page.locator('.dl-match-summary').getByText('Net worth / min',{exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Performance comparison'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Next-game focus'})).toBeVisible();
  await page.keyboard.press('Escape');await expect(page.getByRole('dialog')).not.toBeVisible();await expect(details).toBeFocused();
@@ -91,7 +91,8 @@ test('profile rank failure does not hide history or hero statistics',async({page
  await page.route('**/api/players/123/rank',route=>route.fulfill({status:502,json:{error:'Rank temporarily unavailable'}}));
  await page.goto('/');
  await expect(page.getByText('Rank unavailable: Rank temporarily unavailable')).toBeVisible();
- await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr')).toHaveCount(2);
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr')).toHaveCount(1);
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('33%');
  await expect(page.locator('[aria-labelledby="history-heading"] tbody tr')).toHaveCount(2);
 });
 test('a late profile response cannot replace the newly selected player rank',async({page})=>{

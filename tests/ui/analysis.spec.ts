@@ -42,7 +42,7 @@ test('history match opens a compact report and automatically loads its analysis'
  expect(analysisRequests).toEqual([]);
  const button=page.getByRole('button',{name:'Details for match 101'});
  await button.click();await expect(page.getByRole('dialog')).toBeVisible();
- await expect(page.getByText('Net worth / min')).toBeVisible();
+ await expect(page.locator('.dl-match-summary').getByText('Net worth / min',{exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Performance comparison'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Income sources at a shared checkpoint'})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Next-game focus'})).toBeVisible();
@@ -66,7 +66,7 @@ test('analysis controls compare with lobby ranks and another player',async({page
  expect(request.url()).toContain('max_average_badge=66');
  await expect(page.getByRole('columnheader',{name:'Archon-average lobbies median'})).toBeVisible();
  await page.locator('#analysis-compare').selectOption('player');
- await page.locator('#comparison-search').fill('Friend');await page.getByRole('button',{name:'Find player',exact:true}).click();
+ await page.locator('#comparison-search').fill('Friend');await page.getByRole('dialog').getByRole('button',{name:'Find player',exact:true}).click();
  await page.getByRole('button',{name:/Fixture Friend Account 456/}).click();
  await expect(page.getByRole('columnheader',{name:'Fixture Friend median'})).toBeVisible();
  expect(analysisRequests.some(r=>r.includes('account_ids=456'))).toBe(true);
@@ -96,7 +96,7 @@ test('match analysis handles unavailable details while keeping the history summa
  await fixtures(page);await page.route('**/api/analysis/match/**',r=>r.fulfill({status:502,json:{error:'Metadata not stored'}}));
  await page.goto('/');await page.getByRole('button',{name:'Details for match 101'}).click();
  await expect(page.getByRole('alert')).toContainText('Detailed match data unavailable');
- await expect(page.getByText('Net worth / min')).toBeVisible();
+ await expect(page.locator('.dl-match-summary').getByText('Net worth / min',{exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Performance comparison'})).toBeVisible();
 });
 test('closing a match during a pending request prevents stale data from replacing the next match',async({page})=>{
