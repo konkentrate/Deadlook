@@ -19,7 +19,7 @@
         <img class="dl-brand-wordmark" src="/deadlook-wordmark.svg" width="176" height="24" alt="Deadlook"/>
       </a>
       <nav class="nav nav-pills main-nav" aria-label="Main menu">
-        <a class:active={!inBuilds&&!analysis} class="nav-link" href="/" aria-current={!inBuilds&&!analysis ? 'page' : undefined}><IconHistory size={18}/> Match history</a>
+        <a class:active={!inBuilds&&!analysis} class="nav-link" href="/" aria-current={!inBuilds&&!analysis ? 'page' : undefined}><IconHistory size={18}/> Player Profile</a>
         <details class="nav-build-menu" open={false}>
           <summary class:active={inBuilds} class="nav-link" aria-current={inBuilds ? 'page' : undefined}><IconStack2 size={18}/> Build <IconChevronDown size={15}/></summary>
           <div class="nav-build-submenu" aria-label="Build tools">

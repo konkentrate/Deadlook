@@ -16,6 +16,9 @@ Unofficial fan project, not affiliated with Valve or Statlocker.
 - Rootless Podman-ready, non-root production container.
 
 The app reads available community API data; it does not collect missing games from Steam.
+The home page is a player profile with API-reported rank, region, per-hero performance
+and recent-match previews, alongside the searchable match history. Profile summaries
+use available API data and may have different coverage from retained match history.
 Build Finder uses the live per-hero player scoreboard from Deadlock API, cached for
 five minutes, with rank/win-rate/matches sorting and a minimum-game threshold. Build
 Helper lets you enter your hero, enemy lineup and observed threats to organize

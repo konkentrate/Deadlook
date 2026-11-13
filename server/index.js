@@ -1,6 +1,7 @@
 import express from 'express';
 import { registerFinder } from './finder.js';
 import { registerAnalysis } from './analysis.js';
+import { registerPlayers } from './players.js';
 import { resolve, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { Cache, ApiError, normalizeAccount } from './cache.js';
@@ -44,6 +45,7 @@ app.get('/api/matches/:match/metadata', async (req, res) => {
 });
 registerFinder(app, cache);
 registerAnalysis(app, cache);
+registerPlayers(app, cache);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'Endpoint not found.' }));
 app.use(express.static(join(root, 'dist')));
 app.use((error, _req, res, _next) => {

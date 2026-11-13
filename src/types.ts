@@ -8,7 +8,9 @@ export interface Match {
   match_id: number; hero_id: number; start_time: number; player_kills: number;
   player_deaths: number; player_assists: number; net_worth: number; last_hits: number;
   denies: number; match_duration_s: number; hero_level: number; player_match_outcome: number;
-  game_mode: number; match_mode: number; [key: string]: unknown;
+  game_mode: number; match_mode: number;
+  ranked_delta?: number | null; // Ranked progress change awarded for this match, not MMR.
+  ranked_display_badge?: number | null; [key: string]: unknown;
 }
 export interface Result<T> { data: T; fetchedAt: string; stale: boolean; cached: boolean; warning?: string; latestResponseCount?: number; }
 export async function api<T>(path: string): Promise<T> {

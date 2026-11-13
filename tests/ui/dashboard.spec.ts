@@ -1,8 +1,13 @@
 import { test, expect, type Page } from '@playwright/test';
 const now = Math.floor(Date.now()/1000);
 const profile = {account_id:123,personaname:'Fixture Player'};
+const playerHeroStats={account_id:123,hero_id:1,matches_played:12,wins:8,last_played:now-1000,time_played:21600,kills:120,deaths:60,assists:180,kills_per_min:0.4,deaths_per_min:0.2,assists_per_min:0.6,networth_per_min:650,damage_per_min:780,obj_damage_per_min:120,mvp_rank_counts:[2,1,3],mvp_rated_matches:10};
+const zeroDeathHeroStats={account_id:123,hero_id:2,matches_played:1,wins:1,last_played:now-2000,time_played:1800,kills:10,deaths:0,assists:0,kills_per_min:0.33,deaths_per_min:0,assists_per_min:0,networth_per_min:600,damage_per_min:500,obj_damage_per_min:80,mvp_rank_counts:[0,0,0],mvp_rated_matches:1};
+const rankData={badge:82,rank:8,subrank:2,last_match:{match_id:101,start_time:now-3600,player_rank_initial_display_rank:81}};
+const friendRankData={badge:72,rank:7,subrank:2,last_match:{match_id:201,start_time:now-1800,player_rank_initial_display_rank:71}};
+const rankAssets=[{tier:8,name:'Oracle',images:{large_subrank2_webp:'/deadlook-eye.svg'}},{tier:7,name:'Archon',images:{large_subrank2_webp:'/deadlook-eye.svg'}}];
 const heroes = [{id:1,name:'Infernus',playable:true,images:{icon_hero_card_webp:'/deadlook-eye.svg',icon_image_small_webp:'/deadlook-eye.svg'}},{id:2,name:'Seven',playable:true,images:{icon_hero_card_webp:'/deadlook-eye.svg'}}];
-const makeMatch=(id:number,hero:number,start:number,outcome:number)=>({account_id:123,match_id:id,hero_id:hero,hero_level:20,start_time:start,game_mode:1,match_mode:4,player_team:0,player_match_outcome:outcome,player_kills:8,player_deaths:4,player_assists:10,net_worth:30000,last_hits:100,denies:5,match_duration_s:1800,match_result:outcome===1?0:1});
+const makeMatch=(id:number,hero:number,start:number,outcome:number)=>({account_id:123,match_id:id,hero_id:hero,hero_level:20,start_time:start,game_mode:1,match_mode:4,ranked_delta:id===101?12:null,ranked_display_badge:id===101?82:null,player_team:0,player_match_outcome:outcome,player_kills:8,player_deaths:4,player_assists:10,net_worth:30000,last_hits:100,denies:5,match_duration_s:1800,match_result:outcome===1?0:1});
 const history=[makeMatch(101,1,now-3600,1),makeMatch(102,2,now-7200,2),makeMatch(103,1,now-90*86400,1)];
 const seasons=[{class_name:'season_2',name:'Beta Season 2',ranked_type:'normal',intervals:[{interval:2,start_timestamp:now-60*86400,end_timestamp:now+60*86400}]},{class_name:'season_1',name:'Beta Season 1',ranked_type:'normal',intervals:[{interval:1,start_timestamp:now-120*86400,end_timestamp:now-60*86400}]}];
 const item={id:10,name:'Extra Spirit',type:'upgrade',item_slot_type:'spirit',item_tier:1,shop_image_small_webp:'/deadlook-eye.svg'};
@@ -18,6 +23,10 @@ async function fixtures(page:Page,remember=true){
   if(path==='/api/search')response=envelope([url.searchParams.get('q')==='Fixture'?{account_id:456,personaname:'Fixture Friend'}:profile]);
   else if(path==='/api/heroes')response=envelope(heroes);
   else if(path==='/api/seasons')response=envelope(seasons);
+  else if(path==='/api/analysis/ranks')response=envelope(rankAssets);
+  else if(path.endsWith('/rank'))response=envelope(path.split('/')[3]==='456'?friendRankData:rankData);
+  else if(path.endsWith('/hero-stats'))response=envelope([playerHeroStats,zeroDeathHeroStats]);
+  else if(path.endsWith('/region'))response=envelope({account_id:123,region:'eu_west',region_month:now-86400,history:[]});
   else if(path.endsWith('/history'))response=envelope(history.map(m=>({...m,account_id:Number(path.split('/')[3])})));
   else if(path==='/api/finder/items')response=envelope([item,rareItem,ability]);
   else if(path==='/api/finder/leaderboard')response=envelope([{...profile,rank:1,matches:12,value:url.searchParams.get('sort_by')==='winrate'?0.75:65000,badge:111}]);
@@ -36,8 +45,18 @@ async function fixtures(page:Page,remember=true){
 test('history uses season filters, native accessible inspector, and default player storage',async({page})=>{
  const errors=await fixtures(page);await page.goto('/');
  await expect(page.getByRole('heading',{name:'Fixture Player'})).toBeVisible();
- await expect(page.locator('tbody tr')).toHaveCount(2);
- await page.locator('#season').selectOption('season_1');await expect(page.locator('tbody tr')).toHaveCount(1);
+ await expect(page.getByRole('heading',{name:'Player Profile'})).toBeVisible();
+ await expect(page.getByText('Oracle',{exact:true})).toBeVisible();
+ await expect(page.getByText('Latest match rank progress: +12 points')).toBeVisible();
+ await expect(page.getByText('eu west',{exact:true})).toBeVisible();
+ await expect(page.getByRole('heading',{name:'Hero performance'})).toBeVisible();
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('67%');
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('5.00');
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Seven'})).toContainText('10.00');
+ await expect(page.getByRole('heading',{name:'Latest recorded matches'})).toBeVisible();
+ await page.getByRole('button',{name:/Inspect win as Infernus/}).first().click();await expect(page.getByRole('dialog')).toBeVisible();await page.keyboard.press('Escape');
+ await expect(page.locator('[aria-labelledby="history-heading"] tbody tr')).toHaveCount(2);
+ await page.locator('#season').selectOption('season_1');await expect(page.locator('[aria-labelledby="history-heading"] tbody tr')).toHaveCount(1);
  await page.locator('#season').selectOption('season_2');
  const details=page.getByRole('button',{name:'Details for match 101'});
  await details.click();await expect(page.getByRole('dialog')).toBeVisible();
@@ -50,6 +69,27 @@ test('history uses season filters, native accessible inspector, and default play
  await page.getByRole('button',{name:'Make my default'}).click();
  expect(await page.evaluate(()=>JSON.parse(localStorage.getItem('deadlook.home')||'null').account_id)).toBe(456);
  expect(errors).toEqual([]);
+});
+test('profile rank failure does not hide history or hero statistics',async({page})=>{
+ await fixtures(page);
+ await page.route('**/api/players/123/rank',route=>route.fulfill({status:502,json:{error:'Rank temporarily unavailable'}}));
+ await page.goto('/');
+ await expect(page.getByText('Rank unavailable: Rank temporarily unavailable')).toBeVisible();
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr')).toHaveCount(2);
+ await expect(page.locator('[aria-labelledby="history-heading"] tbody tr')).toHaveCount(2);
+});
+test('a late profile response cannot replace the newly selected player rank',async({page})=>{
+ await fixtures(page);
+ let releaseOld!:()=>void;const held=new Promise<void>(resolve=>{releaseOld=resolve;});
+ await page.route('**/api/players/123/rank',async route=>{await held;await route.fulfill({json:{data:rankData,fetchedAt:new Date().toISOString(),cached:false,stale:false}});});
+ await page.goto('/');
+ await expect(page.getByRole('heading',{name:'Fixture Player'})).toBeVisible();
+ await page.locator('#player-search').fill('Fixture');await page.getByRole('button',{name:'Find player',exact:true}).click();
+ await page.getByRole('button',{name:/Fixture Friend Account 456/}).click();
+ await expect(page.getByRole('heading',{name:'Fixture Friend'})).toBeVisible();
+ await expect(page.getByText('Archon',{exact:true})).toBeVisible();
+ releaseOld();
+ await expect(page.getByText('Archon',{exact:true})).toBeVisible();
 });
 test('build finder ranks live players and shows item, ability and exact-match builds',async({page})=>{
  const errors=await fixtures(page);await page.goto('/builds.html#hero=1&p=123');
@@ -119,7 +159,7 @@ test('fresh browsers have no preset and can save, reload, and clear their own pl
 });
 test('both pages fit a mobile viewport and keep navigation usable',async({page})=>{
  await fixtures(page);await page.setViewportSize({width:375,height:812});
- await page.goto('/');await expect(page.locator('tbody tr')).toHaveCount(2);
+ await page.goto('/');await expect(page.locator('[aria-labelledby="history-heading"] tbody tr')).toHaveCount(2);
  expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
  await page.getByText('Build',{exact:true}).click();
  await page.getByRole('link',{name:'Build Finder',exact:true}).click();

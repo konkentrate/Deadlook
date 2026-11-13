@@ -94,13 +94,13 @@ Never indicate a result or selected state by color alone:
 
 Every page follows:
 
-1. Shared navbar (logo + Match history + Build Finder).
+1. Shared navbar (logo + Player Profile + Build Finder).
 2. PageHeader: eyebrow, title, one sentence of description, primary actions.
 3. page-body > container-xl.
 4. Filters/lookup and content composed with row, col-*, row-cards, card.
 5. Shared footer with data-source and unofficial-project disclosure.
 
-History: lookup → player identity → four summary cards → filtered match table.
+History/Profile: lookup → player identity and rank/region overview → hero-performance table and recent-match previews → filtered match table and inspector.
 Build Finder: global filters → hero picker → player-list / build-detail columns.
 Analysis: player/filters → economy → comparisons → interval tempo → route → review prompts.
 See ANALYSIS.md for formulas, position decoding and limits on coaching claims.
