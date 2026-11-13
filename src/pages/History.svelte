@@ -52,6 +52,7 @@
   function regionSampleCount(data:PlayerRegion){return data.region_month===undefined||data.region_month===null?0:(data.history||[]).filter(m=>m.month===data.region_month&&m.region).reduce((n,m)=>n+m.matches,0);}
   function heroKda(stat:PlayerHeroStats){return ((stat.kills+stat.assists)/Math.max(1,stat.deaths)).toFixed(2);}
   function clearFilters(){heroFilter='';resultFilter='';matchFilter='';page=1;}
+  function defaultHeroSeason(){return seasons.find(s=>s.class_name.toLowerCase()==='season_2'||s.name.trim().toLowerCase()==='beta season 2')?.class_name||currentSeason(seasons,Date.now()/1000);}
   async function loadHeroSeason(){
     if(!player)return;const seq=++heroStatsSequence;const selected=seasons.find(s=>s.class_name===heroSeasonFilter);
     heroSeasonError='';
@@ -64,9 +65,10 @@
     finally{if(seq===heroStatsSequence)heroSeasonLoading=false;}
   }
   async function loadProfile(profile:Profile,refresh=false){
-    const seq=++profileSequence;++heroStatsSequence;heroSeasonFilter='';heroSeasonResult=null;heroSeasonError='';heroSeasonLoading=false;profileLoading=true;rankError='';heroStatsError='';regionError='';
+    const seq=++profileSequence;++heroStatsSequence;if(!refresh){heroSeasonFilter=defaultHeroSeason();heroSeasonResult=null;heroSeasonError='';heroSeasonLoading=false;}profileLoading=true;rankError='';heroStatsError='';regionError='';
     if(!refresh){rankResult=null;heroStatsResult=null;regionResult=null;}
     const suffix=refresh?'?refresh=1':'';
+    if(heroSeasonFilter)void loadHeroSeason();
     const tasks=[
       api<Result<PlayerRank>>('/api/players/'+profile.account_id+'/rank'+suffix).then(result=>{if(seq===profileSequence)rankResult=result;}).catch(e=>{if(seq===profileSequence)rankError=(e as Error).message;}),
       api<Result<PlayerHeroStats[]>>('/api/players/'+profile.account_id+'/hero-stats'+suffix).then(result=>{if(seq===profileSequence){heroStatsResult=result;if(!heroSeasonFilter)heroSeasonResult=result;}}).catch(e=>{if(seq===profileSequence)heroStatsError=(e as Error).message;}),

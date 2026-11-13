@@ -54,6 +54,8 @@ test('history uses season filters, native accessible inspector, and default play
  await expect(page.getByText('Latest match rank progress: +12 points')).toBeVisible();
  await expect(page.getByText('eu west',{exact:true})).toBeVisible();
  await expect(page.getByRole('heading',{name:'Hero performance'})).toBeVisible();
+ await expect(page.locator('#hero-season-filter')).toHaveValue('season_2');
+ await expect(page.locator('[aria-labelledby="hero-stats-heading"] tbody tr').filter({hasText:'Infernus'})).toContainText('33%');
  const seasonalRequest=page.waitForRequest(r=>r.url().includes('/hero-stats?min_unix_timestamp='));
  await page.locator('#hero-season-filter').selectOption('season_1');
  const seasonalUrl=new URL(await seasonalRequest.then(r=>r.url()));
