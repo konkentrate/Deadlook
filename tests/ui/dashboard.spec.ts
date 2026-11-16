@@ -12,6 +12,7 @@ const history=[makeMatch(101,1,now-3600,1),makeMatch(102,2,now-7200,2),makeMatch
 const seasons=[{class_name:'season_2',name:'Beta Season 2',ranked_type:'normal',intervals:[{interval:2,start_timestamp:now-60*86400,end_timestamp:now+60*86400}]},{class_name:'season_1',name:'Beta Season 1',ranked_type:'normal',intervals:[{interval:1,start_timestamp:now-120*86400,end_timestamp:now-60*86400}]}];
 const item={id:10,name:'Extra Spirit',type:'upgrade',item_slot_type:'spirit',item_tier:1,shop_image_small_webp:'/deadlook-eye.svg'};
 const rareItem={id:11,name:'Situational Guard',type:'upgrade',item_slot_type:'vitality',item_tier:2,shop_image_small_webp:'/deadlook-eye.svg'};
+const weaponItem={id:12,name:'Weapon Upgrade',type:'upgrade',item_slot_type:'weapon',item_tier:1,shop_image_small_webp:'/deadlook-eye.svg'};
 const ability={id:20,name:'Flame Dash',type:'ability',image_webp:'/deadlook-eye.svg'};
 async function fixtures(page:Page,remember=true){
  if(remember)await page.addInitScript(p=>localStorage.setItem('deadlook.home',JSON.stringify(p)),profile);
@@ -28,7 +29,7 @@ async function fixtures(page:Page,remember=true){
   else if(path.endsWith('/hero-stats'))response=envelope(url.searchParams.has('min_unix_timestamp')?[{...playerHeroStats,matches_played:3,wins:1}]:[playerHeroStats,zeroDeathHeroStats]);
   else if(path.endsWith('/region'))response=envelope({account_id:123,region:'eu_west',region_month:now-86400,history:[]});
   else if(path.endsWith('/history'))response=envelope(history.map(m=>({...m,account_id:Number(path.split('/')[3])})));
-  else if(path==='/api/finder/items')response=envelope([item,rareItem,ability]);
+  else if(path==='/api/finder/items')response=envelope([item,rareItem,weaponItem,ability]);
   else if(path==='/api/finder/leaderboard')response=envelope([{...profile,rank:1,matches:12,value:url.searchParams.get('sort_by')==='winrate'?0.75:65000,badge:111}]);
   else if(path==='/api/finder/item-stats')response=envelope([{item_id:10,matches:1,avg_buy_time_s:120},{item_id:11,matches:0,avg_buy_time_s:800}]);
   else if(path==='/api/finder/ability-order-stats')response=envelope([{abilities:[20,20,20,20,20,20],matches:1}]);
@@ -136,6 +137,32 @@ test('build helper captures enemy picks and turns observed threats into ordered 
  await expect(page.getByRole('list')).toContainText('Prioritize an anti-healing option');
  await expect(page.getByText('not matchup statistics')).toBeVisible();
  expect(errors).toEqual([]);
+});
+test('build workshop creates, copies, and re-imports an in-game clipboard code',async({page})=>{
+ await fixtures(page);
+ await page.addInitScript(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async(text:string)=>{(window as any).__copiedBuild=text;}}}));
+ await page.goto('/build-workshop.html');
+ await expect(page.getByRole('heading',{name:'Build Workshop'})).toBeVisible();
+ await expect(page.locator('#workshop-hero')).toHaveValue('1');
+ await page.locator('#workshop-name').fill('My custom build');
+ await page.locator('#cat-name-0').fill('Weapon route');
+ await page.getByRole('button',{name:'Add item'}).first().click();
+ await page.locator('#item-0-0').selectOption('12');
+ await page.locator('#note-0-0').fill('Start here');
+ await page.getByRole('button',{name:'Save draft'}).click();
+ await page.locator('#workshop-name').fill('Unsaved change');
+ await page.getByRole('button',{name:'Restore draft'}).click();
+ await expect(page.locator('#workshop-name')).toHaveValue('My custom build');
+ await page.getByRole('button',{name:'Generate & copy'}).click();
+ await expect(page.getByRole('status')).toContainText('copied to clipboard');
+ const generated=await page.locator('#build-output').inputValue();
+ expect(generated.length).toBeGreaterThan(20);
+ expect(await page.evaluate(()=>((window as any).__copiedBuild))).toBe(generated);
+ await page.locator('#build-import').fill(generated);
+ await page.getByRole('button',{name:'Import code'}).click();
+ await expect(page.locator('#workshop-name')).toHaveValue('My custom build');
+ await expect(page.locator('#cat-name-0')).toHaveValue('Weapon route');
+ await expect(page.locator('#item-0-0')).toHaveValue('12');
 });
 test('history clearly marks stale data and empty filtered results',async({page})=>{
  await fixtures(page);

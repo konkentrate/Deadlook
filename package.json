@@ -8,7 +8,7 @@
     "dev:server": "PORT=3001 DATA_DIR=./data-dev node --env-file-if-exists=.env --watch server/index.js",
     "build": "svelte-check --tsconfig ./tsconfig.json && vite build",
     "start": "node --env-file-if-exists=.env server/index.js",
-    "test": "node --test server/*.test.js",
+    "test": "node --test server/*.test.js src/lib/*.test.js",
     "test:ui": "playwright test"
   },
   "dependencies": {

@@ -8,7 +8,7 @@ Unofficial fan project, not affiliated with Valve or Statlocker.
 
 ## Stack
 
-- Svelte 5 + TypeScript + Vite for player profile/history, Build Finder and Build Helper.
+- Svelte 5 + TypeScript + Vite for player profile/history, Build Finder, Build Helper and Build Workshop.
 - Tabler Core components/layout + Tabler Svelte icons, bundled locally.
 - Shared Deadlook design system: [docs/DESIGN.md](docs/DESIGN.md).
 - Node 22 + Express serves both pages and proxies specific Deadlock API endpoints.
@@ -24,6 +24,11 @@ five minutes, with rank/win-rate/matches sorting and a minimum-game threshold. B
 Helper lets you enter your hero, enemy lineup and observed threats to organize
 situational purchase priorities. It is explicitly a planning aid: current API data
 is not indexed by enemy composition, so it does not claim matchup-specific item rates.
+Build Workshop creates and edits item-category builds in the browser and encodes them
+as Deadlock clipboard build codes for pasting into the game. Drafts remain local; the
+player still saves or publishes through Deadlock. Imported ability-order bytes are
+preserved but not yet editable. Build clipboard formats can change with game updates;
+see [third-party notices](src/lib/THIRD_PARTY_NOTICES.md) for the bundled Zstandard codec.
 The season, time window and match-type controls apply to both rankings and builds.
 For an available match timeline, Build Finder also shows that match’s enemy heroes
 and compares each purchased item with the selected player’s observed item frequency.

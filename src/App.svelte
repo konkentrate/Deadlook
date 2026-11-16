@@ -3,9 +3,11 @@
   import History from './pages/History.svelte';
   import BuildFinder from './pages/BuildFinder.svelte';
   import BuildHelper from './pages/BuildHelper.svelte';
+  import BuildWorkshop from './pages/BuildWorkshop.svelte';
   const builds = location.pathname === '/builds.html';
   const buildHelper = location.pathname === '/build-helper.html';
-  const inBuilds = builds || buildHelper;
+  const buildWorkshop = location.pathname === '/build-workshop.html';
+  const inBuilds = builds || buildHelper || buildWorkshop;
 </script>
 
 <div class="page">
@@ -23,6 +25,7 @@
           <div class="nav-build-submenu" aria-label="Build tools">
             <a class:active={builds} href="/builds.html" aria-current={builds ? 'page' : undefined}><IconStack2 size={17}/> Build Finder</a>
             <a class:active={buildHelper} href="/build-helper.html" aria-current={buildHelper ? 'page' : undefined}><IconBulb size={17}/> Build Helper</a>
+            <a class:active={buildWorkshop} href="/build-workshop.html" aria-current={buildWorkshop ? 'page' : undefined}>Build Workshop</a>
           </div>
         </details>
       </nav>
@@ -30,7 +33,7 @@
     </div>
   </header>
   <div class="page-wrapper">
-    <main id="main" tabindex="-1">{#if builds}<BuildFinder/>{:else if buildHelper}<BuildHelper/>{:else}<History/>{/if}</main>
+    <main id="main" tabindex="-1">{#if builds}<BuildFinder/>{:else if buildHelper}<BuildHelper/>{:else if buildWorkshop}<BuildWorkshop/>{:else}<History/>{/if}</main>
     <footer class="footer footer-transparent d-print-none mt-auto">
       <div class="container-xl d-flex flex-wrap justify-content-between gap-3">
         <div><img class="dl-footer-wordmark" src="/deadlook-wordmark.svg" width="104" height="14" alt="Deadlook"/><span class="text-secondary"> · Keep an eye on your game.</span><div class="text-secondary small mt-1">Unofficial fan project. Available API data may not include every match.</div></div>
